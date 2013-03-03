@@ -3,7 +3,6 @@ package com.fun.animator.input;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.util.concurrent.FutureTask;
 
 import javax.swing.*;
 import javax.swing.border.CompoundBorder;
@@ -15,13 +14,15 @@ import com.fun.animator.LifeCycle;
 
 public class CameraInputDialog extends JDialog implements LifeCycle {
 
-    private JPanel imagePanel;
+    private ImagePanel imagePanel;
     private JButton startRecordingButton;
     private JButton stopRecordingButton;
     private JButton playRecordingButton;
     private JTextField delayBetweenTwoFramesField;
 
     private Camera camera;
+    private Thread cameraThread;
+    private boolean stopCameraAsap = false;
 
     CameraInputDialog(JFrame parent) {
         super(parent, true);
@@ -30,7 +31,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
 
     @Override
     public void createComponents() {
-        imagePanel = new JPanel();
+        imagePanel = new ImagePanel();
         imagePanel.setBorder(new CompoundBorder(new EmptyBorder(10, 10, 10, 10), new LineBorder(Color.BLACK, 2)));
         startRecordingButton = new JButton("Start Recording");
         stopRecordingButton = new JButton("Stop Recording");
@@ -63,14 +64,34 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
 
     @Override
     public void registerHandlers() {
-        addWindowStateListener(new WindowAdapter() {
+        addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
-                if (camera.isStarted()) {
-                    camera.stop();
+                stopCameraAsap = true;
+                try {
+                    cameraThread.join();
+                } catch (InterruptedException ex) {
+                    ex.printStackTrace();
                 }
-                if (camera.isInitialized()) {
-                    camera.release();
+            }
+
+            @Override
+            public void windowClosed(WindowEvent e) {
+                stopCamera();
+                shutdownCamera();
+            }
+        });
+
+        cameraThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (!stopCameraAsap) {
+                    try {
+                        Thread.sleep(100L);
+                    } catch (InterruptedException e) {
+                    }
+                    imagePanel.setImage(camera.getGrabbedImage());
+                    imagePanel.repaint();
                 }
             }
         });
@@ -81,7 +102,6 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
         Dimension imagePanelDimension = new Dimension(400, 300);
         imagePanel.setMinimumSize(imagePanelDimension);
         imagePanel.setPreferredSize(imagePanelDimension);
-        imagePanel.add(new JLabel("saikat"));
         setResizable(true);
         pack();
         SwingUtilities.invokeLater(new Runnable() {
@@ -89,7 +109,28 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
             public void run() {
                 camera.initialize();
                 camera.start();
+                cameraThread.start();
             }
         });
+    }
+
+    private void shutdownCamera() {
+        if (camera.isInitialized()) {
+            try {
+                camera.release();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
+
+    private void stopCamera() {
+        if (camera.isStarted()) {
+            try {
+                camera.stop();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }
     }
 }
