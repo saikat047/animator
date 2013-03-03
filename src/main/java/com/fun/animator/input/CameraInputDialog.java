@@ -135,7 +135,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
                     cameraInputImage.repaint();
                     mergedImage.setImage(filterImage(grabbedImage, backgroundImage));
                     mergedImage.repaint();
-                    depthImage.setImage(grabbedImage.getDepthImage());
+                    depthImage.setImage(convertColor(grabbedImage));
                     depthImage.repaint();
                 }
             }
@@ -150,6 +150,11 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
                 }
             }
         });
+    }
+
+    private BufferedImage convertColor(Image grabbedImage) {
+        // TODO saikat: convert depth int to a valid color object
+        return grabbedImage.getDepthImage();
     }
 
     private BufferedImage filterImage(Image source, Image background) {
