@@ -18,20 +18,23 @@ import com.fun.animator.LifeCycle;
 
 public class CameraInputDialog extends JDialog implements LifeCycle {
 
+    private static final int MAX_DIFF_IN_COLORS = 20;
     private ImagePanel cameraInputImage;
     private ImagePanel staticBackgroundImage;
     private ImagePanel mergedImage;
-    private ImagePanel grayScaleImage;
+    private ImagePanel depthImage;
     private JButton startRecordingButton;
     private JButton stopRecordingButton;
     private JButton playRecordingButton;
     private JTextField delayBetweenTwoFramesField;
     private JButton snapBackgroundButton;
 
+    private CachedRGBToColorMapper cachedRGBToColorMapper = new CachedRGBToColorMapper();
     private Camera camera;
-    public long frameDelayInMillis = 80L;
+    public long frameDelayInMillis = 10L;
     private Thread cameraThread;
     private boolean stopCameraAsap = false;
+    private Image backgroundImage;
 
     CameraInputDialog(JFrame parent) {
         super(parent, true);
@@ -43,14 +46,14 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
         cameraInputImage = new ImagePanel("RealTime", Color.BLUE);
         staticBackgroundImage = new ImagePanel("Background", Color.BLACK);
         mergedImage = new ImagePanel("Merged display", Color.GREEN);
-        grayScaleImage = new ImagePanel("Grayscale", Color.RED);
+        depthImage = new ImagePanel("Depthscale", Color.RED);
         startRecordingButton = new JButton("Start Recording");
         stopRecordingButton = new JButton("Stop Recording");
         snapBackgroundButton = new JButton("Snap Background");
         playRecordingButton = new JButton("Play");
         delayBetweenTwoFramesField = new JTextField(Long.toString(frameDelayInMillis));
         delayBetweenTwoFramesField.setColumns(5);
-        camera = new Camera();
+        camera = new OpenKinectCamera();
     }
 
     private JPanel wrapImagePanel(ImagePanel imagePanel) {
@@ -83,7 +86,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
         imagesPanel.add(wrapImagePanel(cameraInputImage));
         imagesPanel.add(wrapImagePanel(staticBackgroundImage));
         imagesPanel.add(wrapImagePanel(mergedImage));
-        imagesPanel.add(wrapImagePanel(grayScaleImage));
+        imagesPanel.add(wrapImagePanel(depthImage));
 
         getContentPane().add(imagesPanel, BorderLayout.CENTER);
     }
@@ -111,8 +114,10 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
         snapBackgroundButton.addActionListener(new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                staticBackgroundImage.setImage(camera.getGrabbedImage());
+                backgroundImage = camera.getGrabbedImage().deepCopy();
             }
+
+
         });
 
         cameraThread = new Thread(new Runnable() {
@@ -123,14 +128,15 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
                         Thread.sleep(frameDelayInMillis);
                     } catch (InterruptedException e) {
                     }
+                    staticBackgroundImage.setImage(backgroundImage == null ? null : backgroundImage.getColorImage());
                     staticBackgroundImage.repaint();
-                    BufferedImage grabbedImage = camera.getGrabbedImage();
-                    cameraInputImage.setImage(grabbedImage);
+                    Image grabbedImage = camera.getGrabbedImage();
+                    cameraInputImage.setImage(grabbedImage.getColorImage());
                     cameraInputImage.repaint();
-                    mergedImage.setImage(grabbedImage);
+                    mergedImage.setImage(filterImage(grabbedImage, backgroundImage));
                     mergedImage.repaint();
-                    grayScaleImage.setImage(grabbedImage);
-                    grayScaleImage.repaint();
+                    depthImage.setImage(grabbedImage.getDepthImage());
+                    depthImage.repaint();
                 }
             }
         });
@@ -146,6 +152,40 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
         });
     }
 
+    private BufferedImage filterImage(Image source, Image background) {
+        if (background == null) {
+            return source.getColorImage();
+        }
+
+        BufferedImage result = new BufferedImage(source.getWidth(), source.getHeight(), source.getColorImageType());
+        final int width = background.getWidth();
+        final int height = background.getHeight();
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                Color backgroundColor = cachedRGBToColorMapper.map(background.getRGB(x, y));
+                Color sourceColor = cachedRGBToColorMapper.map(source.getRGB(x, y));
+                if (isColorsAlmostSame(backgroundColor, sourceColor)) {
+                    result.setRGB(x, y, Color.BLACK.getRGB());
+                } else {
+                    result.setRGB(x, y, sourceColor.getRGB());
+                }
+            }
+        }
+        return result;
+    }
+
+    private boolean isColorsAlmostSame(Color backgroundColor, Color sourceColor) {
+        final int diffBlue = Math.abs(sourceColor.getBlue() - backgroundColor.getBlue());
+        final int diffRed = Math.abs(sourceColor.getRed() - backgroundColor.getRed());
+        final int diffGreen = Math.abs(sourceColor.getGreen() - backgroundColor.getGreen());
+        final int diffAlpha = Math.abs(sourceColor.getAlpha() - backgroundColor.getAlpha());
+
+        return diffBlue < MAX_DIFF_IN_COLORS &&
+               diffRed < MAX_DIFF_IN_COLORS &&
+               diffGreen < MAX_DIFF_IN_COLORS &&
+               diffAlpha < MAX_DIFF_IN_COLORS;
+    }
+
     @Override
     public void initialize() {
         Dimension imagePanelDimension = new Dimension(400, 300);
@@ -158,8 +198,8 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
         mergedImage.setMinimumSize(imagePanelDimension);
         mergedImage.setPreferredSize(imagePanelDimension);
 
-        grayScaleImage.setMinimumSize(imagePanelDimension);
-        grayScaleImage.setPreferredSize(imagePanelDimension);
+        depthImage.setMinimumSize(imagePanelDimension);
+        depthImage.setPreferredSize(imagePanelDimension);
 
 
         setResizable(true);

@@ -24,10 +24,10 @@ public class ImagePanel extends JPanel {
 
     @Override
     public void paint(Graphics g) {
+        g.setColor(Color.BLACK);
+        g.clearRect(0, 0, getWidth(), getHeight());
         if (image != null) {
             g.drawImage(image, 0, 0, getWidth(), getHeight(), null);
-        } else {
-            g.clearRect(0, 0, getWidth(), getHeight());
         }
 
         g.setColor(color);

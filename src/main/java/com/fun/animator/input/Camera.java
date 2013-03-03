@@ -18,7 +18,7 @@ public class Camera {
 
     public void initialize() throws RuntimeException {
         try {
-            grabber = FrameGrabber.createDefault(0);
+            grabber = createFrameGrabber();
             grabber.setImageWidth(width);
             grabber.setImageHeight(height);
             grabber.setImageMode(FrameGrabber.ImageMode.COLOR);
@@ -26,6 +26,11 @@ public class Camera {
         } catch (FrameGrabber.Exception e) {
             throw new RuntimeException("unable to initialize grabber", e);
         }
+    }
+
+    protected FrameGrabber createFrameGrabber() throws FrameGrabber.Exception {
+        FrameGrabber grabber = FrameGrabber.createDefault(0);
+        return grabber;
     }
 
     public boolean isInitialized() {
@@ -45,18 +50,18 @@ public class Camera {
         }
     }
 
-    public BufferedImage getGrabbedImage() {
+    public final Image getGrabbedImage() {
         return getGrabbedImage(grabber.getGamma());
     }
 
-    public BufferedImage getGrabbedImage(double gamma) {
+    public Image getGrabbedImage(double gamma) {
         final opencv_core.IplImage grabbedImage;
         try {
             grabbedImage = grabber.grab();
         } catch (FrameGrabber.Exception e) {
             throw new RuntimeException("unable to grab image", e);
         }
-        return grabbedImage.getBufferedImage(gamma);
+        return new ImageWithDepth(grabbedImage, gamma, null);
     }
 
     public void stop() {
