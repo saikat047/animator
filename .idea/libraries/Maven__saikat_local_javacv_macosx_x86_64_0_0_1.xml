@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="Maven: saikat.local:javacv-macosx-x86_64:0.0.1">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/OpenCV/JavaCV/javacv-bin/mac-os-x/javacv-macosx-x86_64.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
