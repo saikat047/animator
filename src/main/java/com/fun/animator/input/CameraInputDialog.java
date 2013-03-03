@@ -31,7 +31,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
 
     @Override
     public void createComponents() {
-        imagePanel = new ImagePanel();
+        imagePanel = new ImagePanel("RealTime", Color.GREEN);
         imagePanel.setBorder(new CompoundBorder(new EmptyBorder(10, 10, 10, 10), new LineBorder(Color.BLACK, 2)));
         startRecordingButton = new JButton("Start Recording");
         stopRecordingButton = new JButton("Stop Recording");
