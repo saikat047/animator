@@ -37,11 +37,11 @@ public class MainLayout extends AbstractAnimatorComponent {
         SplitPane mainPanel = new SplitPane();
         mainPanel.setOrientation(Orientation.HORIZONTAL);
         mainPanel.getItems().add(createLeftPanel());
-        mainPanel.getItems().add(animationView.getRootPane());
-        mainPanel.getItems().add(animationsView.getRootPane());
+        mainPanel.getItems().add(animationView.getRootUIPane());
+        mainPanel.getItems().add(animationsView.getRootUIPane());
         mainPanel.setDividerPositions(0.2, 0.8);
         borderPane.setCenter(mainPanel);
-        setRootPane(borderPane);
+        setRootUIPane(borderPane);
     }
 
     @Override
@@ -60,8 +60,8 @@ public class MainLayout extends AbstractAnimatorComponent {
         SplitPane splitPane = new SplitPane();
         splitPane.setOrientation(Orientation.VERTICAL);
         splitPane.setDividerPositions(0.5);
-        splitPane.getItems().add(controlsPanel.getRootPane());
-        splitPane.getItems().add(controlViewPanel.getRootPane());
+        splitPane.getItems().add(controlsPanel.getRootUIPane());
+        splitPane.getItems().add(controlViewPanel.getRootUIPane());
         return splitPane;
     }
 

@@ -13,6 +13,6 @@ public class AnimationView extends AbstractAnimatorComponent {
     public void createLayout() {
         FlowPane rootPane = new FlowPane();
         rootPane.getChildren().add(new Label("Center Animation Tabbed Pane"));
-        setRootPane(rootPane);
+        setRootUIPane(rootPane);
     }
 }

@@ -1,15 +1,7 @@
 package com.fun.animator;
 
 
-public interface AnimatorComponent {
+public interface AnimatorComponent extends LifeCycle {
 
-    public void createComponents();
-
-    public void createLayout();
-
-    public void registerHandlers();
-
-    public void initialize();
-
-    public javafx.scene.Parent getRootPane();
+    public javafx.scene.Parent getRootUIPane();
 }

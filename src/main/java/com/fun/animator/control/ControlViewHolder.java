@@ -15,6 +15,6 @@ public class ControlViewHolder extends AbstractAnimatorComponent {
     public void createLayout() {
         FlowPane flowPane = new FlowPane();
         flowPane.getChildren().add(new Label("View for selected Control"));
-        setRootPane(flowPane);
+        setRootUIPane(flowPane);
     }
 }

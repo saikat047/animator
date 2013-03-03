@@ -16,6 +16,6 @@ public class ControlsPane extends AbstractAnimatorComponent {
     public void createLayout() {
         FlowPane flowPane = new FlowPane();
         flowPane.getChildren().add(new Label("List of Animation Controls"));
-        setRootPane(flowPane);
+        setRootUIPane(flowPane);
     }
 }
