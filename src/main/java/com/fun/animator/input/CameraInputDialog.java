@@ -1,8 +1,11 @@
 package com.fun.animator.input;
 
 import java.awt.*;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.awt.image.BufferedImage;
 
 import javax.swing.*;
 import javax.swing.border.CompoundBorder;
@@ -14,13 +17,17 @@ import com.fun.animator.LifeCycle;
 
 public class CameraInputDialog extends JDialog implements LifeCycle {
 
-    private ImagePanel imagePanel;
+    private ImagePanel cameraInputImage;
+    private ImagePanel staticBackgroundImage;
+    private ImagePanel mergedImage;
+    private ImagePanel grayScaleImage;
     private JButton startRecordingButton;
     private JButton stopRecordingButton;
     private JButton playRecordingButton;
     private JTextField delayBetweenTwoFramesField;
 
     private Camera camera;
+    public long frameDelayInMillis = 80L;
     private Thread cameraThread;
     private boolean stopCameraAsap = false;
 
@@ -31,14 +38,23 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
 
     @Override
     public void createComponents() {
-        imagePanel = new ImagePanel("RealTime", Color.GREEN);
-        imagePanel.setBorder(new CompoundBorder(new EmptyBorder(10, 10, 10, 10), new LineBorder(Color.BLACK, 2)));
+        cameraInputImage = new ImagePanel("RealTime", Color.BLUE);
+        staticBackgroundImage = new ImagePanel("Background", Color.BLACK);
+        mergedImage = new ImagePanel("Merged display", Color.GREEN);
+        grayScaleImage = new ImagePanel("Grayscale", Color.RED);
         startRecordingButton = new JButton("Start Recording");
         stopRecordingButton = new JButton("Stop Recording");
         playRecordingButton = new JButton("Play");
-        delayBetweenTwoFramesField = new JTextField("0.2");
+        delayBetweenTwoFramesField = new JTextField(Long.toString(frameDelayInMillis));
         delayBetweenTwoFramesField.setColumns(5);
         camera = new Camera();
+    }
+
+    private JPanel wrapImagePanel(ImagePanel imagePanel) {
+        JPanel panel = new JPanel();
+        panel.setBorder(new CompoundBorder(new EmptyBorder(10, 10, 10, 10), new LineBorder(Color.BLACK, 2)));
+        panel.add(imagePanel);
+        return panel;
     }
 
     @Override
@@ -46,7 +62,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
         getContentPane().setLayout(new BorderLayout());
 
         JPanel inputPanel = new JPanel(new FlowLayout());
-        inputPanel.add(new JLabel("Delay:"));
+        inputPanel.add(new JLabel("Delay (in millis):"));
         inputPanel.add(delayBetweenTwoFramesField);
 
         JPanel leftPanel = new JPanel();
@@ -59,7 +75,13 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
         leftPanel.add(new JPanel());
         getContentPane().add(leftPanel, BorderLayout.LINE_START);
 
-        getContentPane().add(imagePanel, BorderLayout.CENTER);
+        JPanel imagesPanel = new JPanel(new GridLayout(2, 2, 5, 5));
+        imagesPanel.add(wrapImagePanel(cameraInputImage));
+        imagesPanel.add(wrapImagePanel(staticBackgroundImage));
+        imagesPanel.add(wrapImagePanel(mergedImage));
+        imagesPanel.add(wrapImagePanel(grayScaleImage));
+
+        getContentPane().add(imagesPanel, BorderLayout.CENTER);
     }
 
     @Override
@@ -87,11 +109,28 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
             public void run() {
                 while (!stopCameraAsap) {
                     try {
-                        Thread.sleep(100L);
+                        Thread.sleep(frameDelayInMillis);
                     } catch (InterruptedException e) {
                     }
-                    imagePanel.setImage(camera.getGrabbedImage());
-                    imagePanel.repaint();
+                    BufferedImage grabbedImage = camera.getGrabbedImage();
+                    staticBackgroundImage.setImage(grabbedImage);
+                    cameraInputImage.setImage(grabbedImage);
+                    mergedImage.setImage(grabbedImage);
+                    grayScaleImage.setImage(grabbedImage);
+                    cameraInputImage.repaint();
+                    staticBackgroundImage.repaint();
+                    mergedImage.repaint();
+                    grayScaleImage.repaint();
+                }
+            }
+        });
+
+        delayBetweenTwoFramesField.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusLost(FocusEvent e) {
+                try {
+                    frameDelayInMillis = Long.parseLong(delayBetweenTwoFramesField.getText());
+                } catch (NumberFormatException numEx) {
                 }
             }
         });
@@ -100,8 +139,19 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
     @Override
     public void initialize() {
         Dimension imagePanelDimension = new Dimension(400, 300);
-        imagePanel.setMinimumSize(imagePanelDimension);
-        imagePanel.setPreferredSize(imagePanelDimension);
+        cameraInputImage.setMinimumSize(imagePanelDimension);
+        cameraInputImage.setPreferredSize(imagePanelDimension);
+
+        staticBackgroundImage.setMinimumSize(imagePanelDimension);
+        staticBackgroundImage.setPreferredSize(imagePanelDimension);
+
+        mergedImage.setMinimumSize(imagePanelDimension);
+        mergedImage.setPreferredSize(imagePanelDimension);
+
+        grayScaleImage.setMinimumSize(imagePanelDimension);
+        grayScaleImage.setPreferredSize(imagePanelDimension);
+
+
         setResizable(true);
         pack();
         SwingUtilities.invokeLater(new Runnable() {

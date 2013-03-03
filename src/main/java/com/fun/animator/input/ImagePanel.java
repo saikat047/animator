@@ -11,10 +11,15 @@ public class ImagePanel extends JPanel {
 
     private Color color;
     private String purpose;
+    private Font biggerFont;
+
+    private FPSCalculator fpsCalculator = new FPSCalculator();
 
     ImagePanel(String purpose, Color color) {
         this.color = color;
         this.purpose = purpose;
+        Font font = getFont();
+        biggerFont = new Font(font.getName(), font.getStyle() | Font.BOLD, font.getSize());
     }
 
     @Override
@@ -24,7 +29,14 @@ public class ImagePanel extends JPanel {
         }
 
         g.setColor(color);
+        if (g.getFont() != biggerFont) {
+            g.setFont(biggerFont);
+        }
         g.drawString(purpose, 10, 20);
+
+        fpsCalculator.updateFPSRendered();
+        String fpsString = "FPS : " + fpsCalculator.getFPS();
+        g.drawString(fpsString, getWidth() - 100, 20);
     }
 
     public void setImage(BufferedImage image) {
