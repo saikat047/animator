@@ -26,6 +26,8 @@ public class ImagePanel extends JPanel {
     public void paint(Graphics g) {
         if (image != null) {
             g.drawImage(image, 0, 0, getWidth(), getHeight(), null);
+        } else {
+            g.clearRect(0, 0, getWidth(), getHeight());
         }
 
         g.setColor(color);

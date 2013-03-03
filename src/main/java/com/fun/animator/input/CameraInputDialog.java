@@ -1,6 +1,7 @@
 package com.fun.animator.input;
 
 import java.awt.*;
+import java.awt.event.ActionEvent;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.event.WindowAdapter;
@@ -25,6 +26,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
     private JButton stopRecordingButton;
     private JButton playRecordingButton;
     private JTextField delayBetweenTwoFramesField;
+    private JButton snapBackgroundButton;
 
     private Camera camera;
     public long frameDelayInMillis = 80L;
@@ -44,6 +46,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
         grayScaleImage = new ImagePanel("Grayscale", Color.RED);
         startRecordingButton = new JButton("Start Recording");
         stopRecordingButton = new JButton("Stop Recording");
+        snapBackgroundButton = new JButton("Snap Background");
         playRecordingButton = new JButton("Play");
         delayBetweenTwoFramesField = new JTextField(Long.toString(frameDelayInMillis));
         delayBetweenTwoFramesField.setColumns(5);
@@ -71,6 +74,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
         leftPanel.add(inputPanel);
         leftPanel.add(startRecordingButton);
         leftPanel.add(stopRecordingButton);
+        leftPanel.add(snapBackgroundButton);
         leftPanel.add(playRecordingButton);
         leftPanel.add(new JPanel());
         getContentPane().add(leftPanel, BorderLayout.LINE_START);
@@ -104,6 +108,13 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
             }
         });
 
+        snapBackgroundButton.addActionListener(new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                staticBackgroundImage.setImage(camera.getGrabbedImage());
+            }
+        });
+
         cameraThread = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -112,14 +123,13 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
                         Thread.sleep(frameDelayInMillis);
                     } catch (InterruptedException e) {
                     }
-                    BufferedImage grabbedImage = camera.getGrabbedImage();
-                    staticBackgroundImage.setImage(grabbedImage);
-                    cameraInputImage.setImage(grabbedImage);
-                    mergedImage.setImage(grabbedImage);
-                    grayScaleImage.setImage(grabbedImage);
-                    cameraInputImage.repaint();
                     staticBackgroundImage.repaint();
+                    BufferedImage grabbedImage = camera.getGrabbedImage();
+                    cameraInputImage.setImage(grabbedImage);
+                    cameraInputImage.repaint();
+                    mergedImage.setImage(grabbedImage);
                     mergedImage.repaint();
+                    grayScaleImage.setImage(grabbedImage);
                     grayScaleImage.repaint();
                 }
             }
