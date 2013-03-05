@@ -156,8 +156,10 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
     }
 
     private BufferedImage convertDepthImageToColorImage(Image grabbedImage) {
-        // TODO saikat: convert depth int to a valid color object
-        BufferedImage depthImage = grabbedImage.getDepthImage();
+        final BufferedImage depthImage = grabbedImage.getDepthImage();
+        final BufferedImage convertedImage = new BufferedImage(depthImage.getWidth(),
+                                                               depthImage.getHeight(),
+                                                               BufferedImage.TYPE_INT_ARGB);
         for (int x = 0; x < depthImage.getWidth(); x++) {
             for (int y = 0; y < depthImage.getHeight(); y++) {
                 int rgb = -1 * depthImage.getRGB(x, y);
@@ -167,30 +169,24 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
                 if (rgb > maxDepth) {
                     maxDepth = rgb;
                 }
-                rgb = convertDepthToColor(rgb);
-                depthImage.setRGB(x, y, rgb);
+                Color color = convertDepthToColor(rgb);
+                convertedImage.setRGB(x, y, color.getRGB());
             }
         }
-        return depthImage;
+        return convertedImage;
     }
 
-    private int convertDepthToColor(int depth) {
+    private Color convertDepthToColor(int depth) {
         if (minDepth != Integer.MAX_VALUE && maxDepth != Integer.MIN_VALUE) {
-            final int colorMin = 100;
-            int colorR = (int) Math.min(255.0, colorMin + (255.0 - colorMin) * depth / maxDepth);
-            depth = new Color(colorR, colorR, colorR).getRGB();
-            /*final int baseColor = 100;
-            final int baseDepth = (maxDepth - minDepth) / 3;
-            if (depth < baseDepth) {
-                final int divider = maxDepth - baseDepth;
-                int r, g, b;
-                r = Math.min(255, baseColor + (255 - baseColor) * (divider - depth) / divider);
-                depth = new Color(r, r, r).getRGB();
-            }*/
-
-            return depth;
+            final int colorRedMin = 100;
+            final int colorGreenMin = 150;
+            final int colorBlueMin = 200;
+            int colorR = (int) Math.min(255.0, colorRedMin + (255.0 - colorRedMin) * depth / maxDepth);
+            int colorG = (int) Math.min(255.0, colorGreenMin + (255.0 - colorGreenMin) * depth / maxDepth);
+            int colorB = (int) Math.min(255.0, colorBlueMin + (255.0 - colorBlueMin) * depth / maxDepth);
+            return new Color(colorR, colorG, colorB, 255);
         }
-        return depth;
+        return Color.BLACK;
     }
 
     private BufferedImage filterImage(Image source, Image background) {
