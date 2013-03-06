@@ -7,6 +7,8 @@ public class DefaultDepthImageTransformers implements DepthImageTransformer {
 
     @Override
     public BufferedImage convertDepthImage(BufferedImage depthImage) {
+        // TODO saikat: Move the max/min depth calculation out of this method
+        //              and accept these as parameters
         int maxDepth = Integer.MIN_VALUE;
         int minDepth = Integer.MAX_VALUE;
         for (int x = 0; x < depthImage.getWidth(); x++) {

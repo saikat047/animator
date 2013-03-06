@@ -32,6 +32,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
     private JTextField delayBetweenTwoFramesField;
     private JButton snapBackgroundButton;
 
+    private DepthImageTransformer depthImageTransformer = new DefaultDepthImageTransformers();
     private CachedRGBToColorMapper cachedRGBToColorMapper = new CachedRGBToColorMapper();
     private Camera camera;
     public long frameDelayInMillis = 10L;
@@ -148,7 +149,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
                     cameraInputImage.repaint();
                     mergedImage.setImage(filterImage(grabbedImage, backgroundImage));
                     mergedImage.repaint();
-                    depthImage.setImage(grabbedImage.getDepthImage());
+                    depthImage.setImage(depthImageTransformer.convertDepthImage(grabbedImage.getDepthImage()));
                     depthImage.repaint();
                 }
             }
@@ -163,40 +164,6 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
                 }
             }
         });
-    }
-
-    private BufferedImage convertDepthImageToColorImage(Image grabbedImage) {
-        final BufferedImage depthImage = grabbedImage.getDepthImage();
-        final BufferedImage convertedImage = new BufferedImage(depthImage.getWidth(),
-                                                               depthImage.getHeight(),
-                                                               BufferedImage.TYPE_INT_ARGB);
-        for (int x = 0; x < depthImage.getWidth(); x++) {
-            for (int y = 0; y < depthImage.getHeight(); y++) {
-                int rgb = -1 * depthImage.getRGB(x, y);
-                if (rgb < minDepth) {
-                    minDepth = rgb;
-                }
-                if (rgb > maxDepth) {
-                    maxDepth = rgb;
-                }
-                Color color = convertDepthToColor(rgb);
-                convertedImage.setRGB(x, y, color.getRGB());
-            }
-        }
-        return convertedImage;
-    }
-
-    private Color convertDepthToColor(int depth) {
-        if (minDepth != Integer.MAX_VALUE && maxDepth != Integer.MIN_VALUE) {
-            final int colorRedMin = 100;
-            final int colorGreenMin = 150;
-            final int colorBlueMin = 200;
-            int colorR = (int) Math.min(255.0, colorRedMin + (255.0 - colorRedMin) * depth / maxDepth);
-            int colorG = (int) Math.min(255.0, colorGreenMin + (255.0 - colorGreenMin) * depth / maxDepth);
-            int colorB = (int) Math.min(255.0, colorBlueMin + (255.0 - colorBlueMin) * depth / maxDepth);
-            return new Color(colorR, colorG, colorB, 255);
-        }
-        return Color.BLACK;
     }
 
     private BufferedImage filterImage(Image source, Image background) {
