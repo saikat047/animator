@@ -7,7 +7,10 @@ import java.awt.event.FocusEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
@@ -116,8 +119,15 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
 
         snapBackgroundButton.addActionListener(new AbstractAction() {
             @Override
-            public void actionPerformed(ActionEvent e) {
+            public void actionPerformed(ActionEvent event) {
                 backgroundImage = camera.getGrabbedImage().deepCopy();
+                final File outputFile = new File("/Users/kazi.saikat/kinect-depth.png");
+                try {
+                    ImageIO.write(backgroundImage.getDepthImage(), "png", outputFile);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    System.out.println(String.format("Unable to write to: %s", outputFile.getAbsolutePath()));
+                }
             }
 
 
@@ -138,7 +148,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
                     cameraInputImage.repaint();
                     mergedImage.setImage(filterImage(grabbedImage, backgroundImage));
                     mergedImage.repaint();
-                    depthImage.setImage(convertDepthImageToColorImage(grabbedImage));
+                    depthImage.setImage(grabbedImage.getDepthImage());
                     depthImage.repaint();
                 }
             }
