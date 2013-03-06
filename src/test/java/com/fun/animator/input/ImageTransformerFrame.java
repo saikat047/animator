@@ -62,8 +62,7 @@ public class ImageTransformerFrame extends JFrame implements LifeCycle {
     }
 
     private JPanel wrapImagePanel(ImagePanel imagePanel) {
-        imagePanel.setPreferredSize(new Dimension(400, 300));
-        JPanel panel = new JPanel();
+        JPanel panel = new JPanel(new BorderLayout());
         panel.setBorder(new CompoundBorder(new EmptyBorder(10, 10, 10, 10), new LineBorder(Color.BLACK, 2)));
         panel.add(imagePanel);
         return panel;
@@ -73,6 +72,7 @@ public class ImageTransformerFrame extends JFrame implements LifeCycle {
         ImageTransformerFrame frame = new ImageTransformerFrame();
         AnimatorInitializer.init(frame);
         frame.pack();
+        frame.setSize(800, 320);
         frame.setVisible(true);
     }
 }
