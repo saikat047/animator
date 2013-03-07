@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Maven: com.googlecode.javacv:javacv:windows-x86_64:0.4">
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/com/googlecode/javacv/javacv/0.4/javacv-0.4-windows-x86_64.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$MAVEN_REPOSITORY$/com/googlecode/javacv/javacv/0.4/javacv-0.4-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$MAVEN_REPOSITORY$/com/googlecode/javacv/javacv/0.4/javacv-0.4-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>
