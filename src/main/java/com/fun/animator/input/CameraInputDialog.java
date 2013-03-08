@@ -18,6 +18,8 @@ import javax.swing.*;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 
 import com.fun.animator.AnimatorInitializer;
 import com.fun.animator.LifeCycle;
@@ -42,7 +44,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
     private JButton playRecordingButton;
     private JTextField delayBetweenTwoFramesField;
     private JTextField maxAllowedDifferenceInConsequentImageTextField;
-    private JButton snapBackgroundButton;
+    private JToggleButton toggleBackgroundButton;
 
     private DepthImageTransformer depthImageTransformer = new DefaultDepthImageTransformers();
     private ImageSequenceRecorder imageSequenceRecorder;
@@ -53,6 +55,8 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
 
     private Image backgroundImage;
     public long frameDelayInMillis = 10L;
+    // TODO saikat: seems like if set to something around 17000000,
+    //              the difference between two depth frames become almost gone.
     public long maxAllowedDifferenceInConsequentImages = 1000L;
 
     CameraInputDialog(JFrame parent) {
@@ -64,11 +68,11 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
     public void createComponents() {
         cameraInputImage = new ImagePanel("RealTime", Color.BLUE);
         staticBackgroundImage = new ImagePanel("Background", Color.BLACK);
-        mergedImage = new ImagePanel("Merged display", Color.GREEN);
+        mergedImage = new ImagePanel("Difference in subsequent depth frames", Color.WHITE);
         depthImage = new ImagePanel("Depthscale", Color.RED);
         startRecordingButton = new JButton("Start Recording");
         stopRecordingButton = new JButton("Stop Recording");
-        snapBackgroundButton = new JButton("Snap Background");
+        toggleBackgroundButton = new JToggleButton("Toggle Background");
         playRecordingButton = new JButton("Play");
         delayBetweenTwoFramesField = new JTextField(Long.toString(frameDelayInMillis));
         delayBetweenTwoFramesField.setColumns(5);
@@ -89,9 +93,11 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
     public void createLayout() {
         getContentPane().setLayout(new BorderLayout());
 
-        JPanel inputPanel = new JPanel(new FlowLayout());
+        JPanel inputPanel = new JPanel(new GridLayout(2, 2));
         inputPanel.add(new JLabel("Delay (in millis):"));
         inputPanel.add(delayBetweenTwoFramesField);
+        inputPanel.add(new JLabel("Max diff : "));
+        inputPanel.add(maxAllowedDifferenceInConsequentImageTextField);
 
         JPanel leftPanel = new JPanel();
         BoxLayout boxLayout = new BoxLayout(leftPanel, BoxLayout.PAGE_AXIS);
@@ -99,7 +105,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
         leftPanel.add(inputPanel);
         leftPanel.add(startRecordingButton);
         leftPanel.add(stopRecordingButton);
-        leftPanel.add(snapBackgroundButton);
+        leftPanel.add(toggleBackgroundButton);
         leftPanel.add(playRecordingButton);
         leftPanel.add(new JPanel());
         getContentPane().add(leftPanel, BorderLayout.LINE_START);
@@ -129,17 +135,14 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
             }
         });
 
-        snapBackgroundButton.addActionListener(new AbstractAction() {
+        toggleBackgroundButton.addChangeListener(new ChangeListener() {
             @Override
-            public void actionPerformed(ActionEvent event) {
+            public void stateChanged(ChangeEvent event) {
+                if (!toggleBackgroundButton.isSelected()) {
+                    backgroundImage = null;
+                    return;
+                }
                 backgroundImage = camera.getGrabbedImage().deepCopy();
-                SwingUtilities.invokeLater(new SwingWorker<Void, Void>() {
-                    @Override
-                    protected Void doInBackground() throws Exception {
-                        writeImageToFile(backgroundImage, imageToDiskNumber.incrementAndGet());
-                        return null;
-                    }
-                });
             }
         });
 
@@ -218,8 +221,6 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
         depthImage.setMinimumSize(imagePanelDimension);
         depthImage.setPreferredSize(imagePanelDimension);
 
-        snapBackgroundButton.setEnabled(false);
-
         setResizable(true);
         pack();
 
@@ -234,18 +235,19 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
                     Thread.sleep(Math.max(1, frameDelayInMillis - CAMERA_TASK_PERIOD_IN_MILLIS));
                 } catch (InterruptedException e) {
                 }
-                staticBackgroundImage.setImage(backgroundImage == null ? null : backgroundImage.getColorImage());
+                staticBackgroundImage.setImage(backgroundImage == null ? null : depthImageTransformer.convertDepthImage(backgroundImage));
                 Image grabbedImage = camera.getGrabbedImage();
                 cameraInputImage.setImage(grabbedImage.getColorImage());
-                // TODO saikat: do something using the background depth-image and foreground-image
                 mergedImage.setImage(diffDepthImage(grabbedImage, previousImage));
+                // TODO saikat: if background image is snapped, filter all depth value in
+                //              grabbedImage that has same depth as background.
                 depthImage.setImage(depthImageTransformer.convertDepthImage(grabbedImage));
                 imagesPanel.repaint();
 
                 if (recording) {
                     imageSequenceRecorder.add(grabbedImage);
                 }
-                previousImage = grabbedImage;
+                previousImage = grabbedImage.deepCopy();
                 grabbedImage = null;
             }
 
@@ -260,16 +262,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
                         long badRGB = previousImage.getDepth(x, y);
                         long difference = Math.abs(goodRGB - badRGB);
                         if (difference <= maxAllowedDifferenceInConsequentImages) {
-                            if (badRGB == 0xFFFFFFFF) {
-                                // both read infinity.
-                                diffImage.setRGB(x, y, Color.BLUE.getRGB());
-                            } else if (badRGB == 0) {
-                                // both read 0. That sucks.
-                                diffImage.setRGB(x, y, Color.BLUE.getRGB());
-                            } else {
-                                // perfect read, both value equal. we need more of this.
-                                diffImage.setRGB(x, y, Color.BLACK.getRGB());
-                            }
+                            diffImage.setRGB(x, y, Color.BLACK.getRGB());
                         } else {
                             // some difference found
                             diffImage.setRGB(x, y, Color.RED.getRGB());
