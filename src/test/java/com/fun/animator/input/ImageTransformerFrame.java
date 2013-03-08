@@ -4,21 +4,14 @@ import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.*;
 import java.util.Timer;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
-import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 
-import com.fun.animator.AnimatorInitializer;
 import com.fun.animator.LifeCycle;
 
 public class ImageTransformerFrame extends JFrame implements LifeCycle {
@@ -46,9 +39,28 @@ public class ImageTransformerFrame extends JFrame implements LifeCycle {
         JPanel imagesPanel = new JPanel();
         BoxLayout layout = new BoxLayout(imagesPanel, BoxLayout.LINE_AXIS);
         imagesPanel.setLayout(layout);
-        imagesPanel.add(wrapImagePanel(depthImagePanel));
-        imagesPanel.add(wrapImagePanel(transformedImagePanel));
+        imagesPanel.add(wrapComponent(depthImagePanel));
+        imagesPanel.add(wrapComponent(transformedImagePanel));
         getContentPane().add(imagesPanel, BorderLayout.CENTER);
+
+        JLabel infoLabel = new JLabel();
+        infoLabel.setText(getImageInfo(depthImage));
+        getContentPane().add(wrapComponent(infoLabel), BorderLayout.LINE_END);
+    }
+
+    private String getImageInfo(BufferedImage image) {
+        StringBuilder imageInfoBuilder = new StringBuilder("<html>");
+        imageInfoBuilder.append("Image type: ").append(image.getType()).append("<br>")
+                        .append("Width : ").append(image.getWidth()).append("<br>")
+                        .append("Height : ").append(image.getHeight()).append("<br>");
+        imageInfoBuilder.append("Properties: ").append("<br>");
+        if (image.getPropertyNames() != null) {
+            for (String propName : image.getPropertyNames()) {
+                imageInfoBuilder.append(propName).append(" = ").append(image.getProperty(propName)).append("<br>");
+            }
+        }
+        imageInfoBuilder.append("</html>");
+        return imageInfoBuilder.toString();
     }
 
     @Override
@@ -77,10 +89,10 @@ public class ImageTransformerFrame extends JFrame implements LifeCycle {
         }, 1000, 20);
     }
 
-    private JPanel wrapImagePanel(ImagePanel imagePanel) {
+    private JPanel wrapComponent(JComponent component) {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBorder(new CompoundBorder(new EmptyBorder(10, 10, 10, 10), new LineBorder(Color.BLACK, 2)));
-        panel.add(imagePanel);
+        panel.add(component);
         return panel;
     }
 }
