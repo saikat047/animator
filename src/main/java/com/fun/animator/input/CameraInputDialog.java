@@ -6,10 +6,12 @@ import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.Timer;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -23,8 +25,12 @@ import com.fun.animator.LifeCycle;
 public class CameraInputDialog extends JDialog implements LifeCycle {
 
     private static final int CAMERA_TASK_PERIOD_IN_MILLIS = 20;
-    private static final String BACKGROUND_DEPTH_IMAGE_FILE_NAME = "kinect-depth.png";
+    private static final String BACKGROUND_DEPTH_IMAGE_FILE_NAME = "kinect-depth";
+    private static final String BACKGROUND_DEPTH_CONVERTED_IMAGE_FILE_NAME = "kinect-converted";
     private static final File USER_HOME_DIRECTORY = new File(System.getProperty("user.home"));
+    private static final File SAVE_DIRECTORY = new File(USER_HOME_DIRECTORY, "kinect-animator");
+
+    private final AtomicInteger imageToDiskNumber = new AtomicInteger(0);
 
     private ImagePanel cameraInputImage;
     private ImagePanel staticBackgroundImage;
@@ -38,6 +44,9 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
     private JButton snapBackgroundButton;
 
     private DepthImageTransformer depthImageTransformer = new DefaultDepthImageTransformers();
+    private ImageSequenceRecorder imageSequenceRecorder;
+    private boolean recording = false;
+
     private Camera camera;
     private java.util.Timer cameraRunner;
 
@@ -120,16 +129,14 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
             @Override
             public void actionPerformed(ActionEvent event) {
                 backgroundImage = camera.getGrabbedImage().deepCopy();
-                final File outputFile = new File(USER_HOME_DIRECTORY, BACKGROUND_DEPTH_IMAGE_FILE_NAME);
-                try {
-                    ImageIO.write(backgroundImage.getDepthImage(), "png", outputFile);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    System.out.println(String.format("Unable to write to: %s", outputFile.getAbsolutePath()));
-                }
+                SwingUtilities.invokeLater(new SwingWorker<Void, Void>() {
+                    @Override
+                    protected Void doInBackground() throws Exception {
+                        writeImageToFile(backgroundImage, imageToDiskNumber.incrementAndGet());
+                        return null;
+                    }
+                });
             }
-
-
         });
 
         delayBetweenTwoFramesField.addFocusListener(new FocusAdapter() {
@@ -141,10 +148,52 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
                 }
             }
         });
+
+        startRecordingButton.addActionListener(new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                imageSequenceRecorder.startRecording();
+                recording = true;
+                mediateRecordingButtons(recording);
+            }
+        });
+
+        stopRecordingButton.addActionListener(new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                imageSequenceRecorder.stopRecording();
+                recording = false;
+                mediateRecordingButtons(recording);
+            }
+        });
+    }
+
+    private void mediateRecordingButtons(boolean recording) {
+        startRecordingButton.setEnabled(!recording);
+        stopRecordingButton.setEnabled(recording);
+    }
+
+    private void writeImageToFile(Image image, int imageNumber) {
+        writeImageToFile(image.getDepthImage(),
+                         new File(SAVE_DIRECTORY, String.format("%d.%s.png", imageNumber, BACKGROUND_DEPTH_IMAGE_FILE_NAME)));
+        writeImageToFile(depthImageTransformer.convertDepthImage(image.getDepthImage()),
+                         new File(SAVE_DIRECTORY, String.format("%d.%s.png", imageNumber, BACKGROUND_DEPTH_CONVERTED_IMAGE_FILE_NAME)));
+    }
+
+    private void writeImageToFile(BufferedImage image, File outputFile) {
+        System.out.println("writing image -> " + outputFile.getAbsolutePath());
+        try {
+            ImageIO.write(image, "png", outputFile);
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.out.println(String.format("Unable to write to: %s", outputFile.getAbsolutePath()));
+        }
     }
 
     @Override
     public void initialize() {
+        stopRecordingButton.setEnabled(false);
+
         Dimension imagePanelDimension = new Dimension(400, 300);
         cameraInputImage.setMinimumSize(imagePanelDimension);
         cameraInputImage.setPreferredSize(imagePanelDimension);
@@ -162,6 +211,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
         setResizable(true);
         pack();
 
+        imageSequenceRecorder = new DefaultImageSequenceRecorder(5, SAVE_DIRECTORY);
         camera.initialize();
         camera.start();
         cameraRunner.scheduleAtFixedRate(new TimerTask() {
@@ -178,6 +228,10 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
                 // mergedImage.setImage(filterImage(grabbedImage, backgroundImage));
                 depthImage.setImage(depthImageTransformer.convertDepthImage(grabbedImage.getDepthImage()));
                 imagesPanel.repaint();
+
+                if (recording) {
+                    imageSequenceRecorder.add(grabbedImage);
+                }
             }
         }, 1000, CAMERA_TASK_PERIOD_IN_MILLIS);
     }

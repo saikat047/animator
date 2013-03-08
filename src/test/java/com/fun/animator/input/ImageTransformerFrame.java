@@ -29,8 +29,9 @@ public class ImageTransformerFrame extends JFrame implements LifeCycle {
     private BufferedImage transformedImage;
     private java.util.Timer taskRunner = new Timer();
 
-    ImageTransformerFrame() {
+    ImageTransformerFrame(BufferedImage image) {
         super("ImageTransformationTest");
+        depthImage = image;
     }
 
     @Override
@@ -64,13 +65,6 @@ public class ImageTransformerFrame extends JFrame implements LifeCycle {
 
     @Override
     public void initialize() {
-        InputStream resourceAsStream = getClass().getResourceAsStream("/kinect-depth.png");
-        try {
-            depthImage = ImageIO.read(resourceAsStream);
-            resourceAsStream.close();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
         transformedImage = new DefaultDepthImageTransformers().convertDepthImage(depthImage);
         depthImagePanel.setImage(depthImage);
         transformedImagePanel.setImage(transformedImage);
@@ -88,13 +82,5 @@ public class ImageTransformerFrame extends JFrame implements LifeCycle {
         panel.setBorder(new CompoundBorder(new EmptyBorder(10, 10, 10, 10), new LineBorder(Color.BLACK, 2)));
         panel.add(imagePanel);
         return panel;
-    }
-
-    public static void main(String [] argv) {
-        ImageTransformerFrame frame = new ImageTransformerFrame();
-        AnimatorInitializer.init(frame);
-        frame.pack();
-        frame.setSize(800, 320);
-        frame.setVisible(true);
     }
 }

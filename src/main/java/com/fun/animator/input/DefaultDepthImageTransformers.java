@@ -40,7 +40,8 @@ public class DefaultDepthImageTransformers implements DepthImageTransformer {
                                       (int) (depthRatio * minColorForScalingZone.getGreen()),
                                       (int) (depthRatio * minColorForScalingZone.getBlue())).getRGB();
                 } else {
-                    final double depthRatio = 1 - (depthValue - minDepth) / (maxDepthForColor - minDepth);
+                    double depthRatio = 1 - (depthValue - minDepth) / (maxDepthForColor - minDepth);
+                    depthRatio = Math.min(depthRatio, 1.0);
                     color = new Color((int) (minColorForScalingZone.getRed() + depthRatio * scalingColorForScalingZone.getRed()),
                                       (int) (minColorForScalingZone.getGreen() + depthRatio * scalingColorForScalingZone.getGreen()),
                                       (int) (minColorForScalingZone.getBlue() + depthRatio * scalingColorForScalingZone.getBlue()))
