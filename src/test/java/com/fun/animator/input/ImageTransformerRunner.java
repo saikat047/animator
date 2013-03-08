@@ -22,7 +22,7 @@ public class ImageTransformerRunner {
     }
 
     private static void createFrame(String frameName, BufferedImage image) throws IOException {
-        ImageTransformerFrame frame = new ImageTransformerFrame(image);
+        ImageTransformerFrame frame = new ImageTransformerFrame(new ImageWithDepth(image, image));
         frame.setTitle(frameName);
         AnimatorInitializer.init(frame);
         frame.pack();

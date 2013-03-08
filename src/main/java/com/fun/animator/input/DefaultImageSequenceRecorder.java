@@ -53,7 +53,7 @@ public class DefaultImageSequenceRecorder implements ImageSequenceRecorder, Runn
     private void writeImageToFile(Image image, int imageNumber) {
         writeImageToFile(image.getDepthImage(),
                          new File(saveDirectory, String.format("%d.%s.png", imageNumber, BACKGROUND_DEPTH_IMAGE_FILE_NAME)));
-        writeImageToFile(depthImageTransformer.convertDepthImage(image.getDepthImage()),
+        writeImageToFile(depthImageTransformer.convertDepthImage(image),
                          new File(saveDirectory, String.format("%d.%s.png", imageNumber, BACKGROUND_DEPTH_CONVERTED_IMAGE_FILE_NAME)));
     }
 

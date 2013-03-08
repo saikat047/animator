@@ -4,9 +4,7 @@ import java.awt.image.BufferedImage;
 
 public interface Image {
 
-    int getRGB(int x, int y);
-
-    int getDepth(int x, int y);
+    long getDepth(int x, int y);
 
     int getWidth();
 

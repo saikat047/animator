@@ -6,6 +6,8 @@ import com.googlecode.javacv.cpp.opencv_core;
 
 public class ImageWithDepth implements Image {
 
+    private static final long INFINITY_DEPTH_VALUE = 0x00000000FFFFFFFFL;
+
     private final BufferedImage colorImage;
     private final BufferedImage depthImage;
     private final int width;
@@ -24,13 +26,8 @@ public class ImageWithDepth implements Image {
     }
 
     @Override
-    public int getRGB(int x, int y) {
-        return colorImage.getRGB(x, y);
-    }
-
-    @Override
-    public int getDepth(int x, int y) {
-        return depthImage == null? 0 : depthImage.getRGB(x, y);
+    public long getDepth(int x, int y) {
+        return depthImage == null? 0 : depthImage.getRGB(x, y) & INFINITY_DEPTH_VALUE;
     }
 
     public int getWidth() {

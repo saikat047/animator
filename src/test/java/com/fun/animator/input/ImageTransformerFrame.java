@@ -18,13 +18,13 @@ public class ImageTransformerFrame extends JFrame implements LifeCycle {
 
     private ImagePanel depthImagePanel;
     private ImagePanel transformedImagePanel;
-    private BufferedImage depthImage;
+    private Image image;
     private BufferedImage transformedImage;
     private java.util.Timer taskRunner = new Timer();
 
-    ImageTransformerFrame(BufferedImage image) {
+    ImageTransformerFrame(Image image) {
         super("ImageTransformationTest");
-        depthImage = image;
+        this.image = image;
     }
 
     @Override
@@ -44,21 +44,14 @@ public class ImageTransformerFrame extends JFrame implements LifeCycle {
         getContentPane().add(imagesPanel, BorderLayout.CENTER);
 
         JLabel infoLabel = new JLabel();
-        infoLabel.setText(getImageInfo(depthImage));
+        infoLabel.setText(getImageInfo(image));
         getContentPane().add(wrapComponent(infoLabel), BorderLayout.LINE_END);
     }
 
-    private String getImageInfo(BufferedImage image) {
+    private String getImageInfo(Image image) {
         StringBuilder imageInfoBuilder = new StringBuilder("<html>");
-        imageInfoBuilder.append("Image type: ").append(image.getType()).append("<br>")
-                        .append("Width : ").append(image.getWidth()).append("<br>")
+        imageInfoBuilder.append("Width : ").append(image.getWidth()).append("<br>")
                         .append("Height : ").append(image.getHeight()).append("<br>");
-        imageInfoBuilder.append("Properties: ").append("<br>");
-        if (image.getPropertyNames() != null) {
-            for (String propName : image.getPropertyNames()) {
-                imageInfoBuilder.append(propName).append(" = ").append(image.getProperty(propName)).append("<br>");
-            }
-        }
         imageInfoBuilder.append("</html>");
         return imageInfoBuilder.toString();
     }
@@ -77,8 +70,8 @@ public class ImageTransformerFrame extends JFrame implements LifeCycle {
 
     @Override
     public void initialize() {
-        transformedImage = new DefaultDepthImageTransformers().convertDepthImage(depthImage);
-        depthImagePanel.setImage(depthImage);
+        transformedImage = new DefaultDepthImageTransformers().convertDepthImage(image);
+        depthImagePanel.setImage(image.getDepthImage());
         transformedImagePanel.setImage(transformedImage);
         taskRunner.scheduleAtFixedRate(new TimerTask() {
             @Override

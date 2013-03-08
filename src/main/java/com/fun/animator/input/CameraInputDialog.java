@@ -41,6 +41,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
     private JButton stopRecordingButton;
     private JButton playRecordingButton;
     private JTextField delayBetweenTwoFramesField;
+    private JTextField maxAllowedDifferenceInConsequentImageTextField;
     private JButton snapBackgroundButton;
 
     private DepthImageTransformer depthImageTransformer = new DefaultDepthImageTransformers();
@@ -52,6 +53,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
 
     private Image backgroundImage;
     public long frameDelayInMillis = 10L;
+    public long maxAllowedDifferenceInConsequentImages = 1000L;
 
     CameraInputDialog(JFrame parent) {
         super(parent, true);
@@ -70,6 +72,8 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
         playRecordingButton = new JButton("Play");
         delayBetweenTwoFramesField = new JTextField(Long.toString(frameDelayInMillis));
         delayBetweenTwoFramesField.setColumns(5);
+        maxAllowedDifferenceInConsequentImageTextField = new JTextField(Long.toString(maxAllowedDifferenceInConsequentImages));
+        maxAllowedDifferenceInConsequentImageTextField.setColumns(6);
         camera = new OpenKinectCamera();
         cameraRunner = new Timer("Animator", true);
     }
@@ -149,6 +153,13 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
             }
         });
 
+        maxAllowedDifferenceInConsequentImageTextField.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusLost(FocusEvent e) {
+                maxAllowedDifferenceInConsequentImages = Long.parseLong(maxAllowedDifferenceInConsequentImageTextField.getText());
+            }
+        });
+
         startRecordingButton.addActionListener(new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -176,7 +187,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
     private void writeImageToFile(Image image, int imageNumber) {
         writeImageToFile(image.getDepthImage(),
                          new File(SAVE_DIRECTORY, String.format("%d.%s.png", imageNumber, BACKGROUND_DEPTH_IMAGE_FILE_NAME)));
-        writeImageToFile(depthImageTransformer.convertDepthImage(image.getDepthImage()),
+        writeImageToFile(depthImageTransformer.convertDepthImage(image),
                          new File(SAVE_DIRECTORY, String.format("%d.%s.png", imageNumber, BACKGROUND_DEPTH_CONVERTED_IMAGE_FILE_NAME)));
     }
 
@@ -207,6 +218,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
         depthImage.setMinimumSize(imagePanelDimension);
         depthImage.setPreferredSize(imagePanelDimension);
 
+        snapBackgroundButton.setEnabled(false);
 
         setResizable(true);
         pack();
@@ -215,6 +227,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
         camera.initialize();
         camera.start();
         cameraRunner.scheduleAtFixedRate(new TimerTask() {
+            private Image previousImage = null;
             @Override
             public void run() {
                 try {
@@ -225,13 +238,46 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
                 Image grabbedImage = camera.getGrabbedImage();
                 cameraInputImage.setImage(grabbedImage.getColorImage());
                 // TODO saikat: do something using the background depth-image and foreground-image
-                // mergedImage.setImage(filterImage(grabbedImage, backgroundImage));
-                depthImage.setImage(depthImageTransformer.convertDepthImage(grabbedImage.getDepthImage()));
+                mergedImage.setImage(diffDepthImage(grabbedImage, previousImage));
+                depthImage.setImage(depthImageTransformer.convertDepthImage(grabbedImage));
                 imagesPanel.repaint();
 
                 if (recording) {
                     imageSequenceRecorder.add(grabbedImage);
                 }
+                previousImage = grabbedImage;
+                grabbedImage = null;
+            }
+
+            private BufferedImage diffDepthImage(Image image, Image previousImage) {
+                if (previousImage == null) {
+                    return image.getDepthImage();
+                }
+                final BufferedImage diffImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_RGB);
+                for (int x = 0; x < image.getWidth(); x++) {
+                    for (int y = 0; y < image.getHeight(); y++) {
+                        long goodRGB = image.getDepth(x, y);
+                        long badRGB = previousImage.getDepth(x, y);
+                        long difference = Math.abs(goodRGB - badRGB);
+                        if (difference <= maxAllowedDifferenceInConsequentImages) {
+                            if (badRGB == 0xFFFFFFFF) {
+                                // both read infinity.
+                                diffImage.setRGB(x, y, Color.BLUE.getRGB());
+                            } else if (badRGB == 0) {
+                                // both read 0. That sucks.
+                                diffImage.setRGB(x, y, Color.BLUE.getRGB());
+                            } else {
+                                // perfect read, both value equal. we need more of this.
+                                diffImage.setRGB(x, y, Color.BLACK.getRGB());
+                            }
+                        } else {
+                            // some difference found
+                            diffImage.setRGB(x, y, Color.RED.getRGB());
+                        }
+
+                    }
+                }
+                return diffImage;
             }
         }, 1000, CAMERA_TASK_PERIOD_IN_MILLIS);
     }
