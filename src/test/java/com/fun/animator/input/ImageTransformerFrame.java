@@ -1,9 +1,16 @@
 package com.fun.animator.input;
 
 import java.awt.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.*;
+import java.util.Timer;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -20,6 +27,7 @@ public class ImageTransformerFrame extends JFrame implements LifeCycle {
     private ImagePanel transformedImagePanel;
     private BufferedImage depthImage;
     private BufferedImage transformedImage;
+    private java.util.Timer taskRunner = new Timer();
 
     ImageTransformerFrame() {
         super("ImageTransformationTest");
@@ -45,6 +53,13 @@ public class ImageTransformerFrame extends JFrame implements LifeCycle {
     @Override
     public void registerHandlers() {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                taskRunner.cancel();
+                taskRunner.purge();
+            }
+        });
     }
 
     @Override
@@ -59,6 +74,13 @@ public class ImageTransformerFrame extends JFrame implements LifeCycle {
         transformedImage = new DefaultDepthImageTransformers().convertDepthImage(depthImage);
         depthImagePanel.setImage(depthImage);
         transformedImagePanel.setImage(transformedImage);
+        taskRunner.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                depthImagePanel.repaint();
+                transformedImagePanel.repaint();
+            }
+        }, 1000, 20);
     }
 
     private JPanel wrapImagePanel(ImagePanel imagePanel) {
