@@ -30,6 +30,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
     private ImagePanel staticBackgroundImage;
     private ImagePanel mergedImage;
     private ImagePanel depthImage;
+    private JPanel imagesPanel;
     private JButton startRecordingButton;
     private JButton stopRecordingButton;
     private JButton playRecordingButton;
@@ -39,10 +40,9 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
     private DepthImageTransformer depthImageTransformer = new DefaultDepthImageTransformers();
     private Camera camera;
     private java.util.Timer cameraRunner;
+
     private Image backgroundImage;
-
     public long frameDelayInMillis = 10L;
-
 
     CameraInputDialog(JFrame parent) {
         super(parent, true);
@@ -91,7 +91,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
         leftPanel.add(new JPanel());
         getContentPane().add(leftPanel, BorderLayout.LINE_START);
 
-        JPanel imagesPanel = new JPanel(new GridLayout(2, 2, 5, 5));
+        imagesPanel = new JPanel(new GridLayout(2, 2, 5, 5));
         imagesPanel.add(wrapImagePanel(cameraInputImage));
         imagesPanel.add(wrapImagePanel(staticBackgroundImage));
         imagesPanel.add(wrapImagePanel(mergedImage));
@@ -172,15 +172,12 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
                 } catch (InterruptedException e) {
                 }
                 staticBackgroundImage.setImage(backgroundImage == null ? null : backgroundImage.getColorImage());
-                staticBackgroundImage.repaint();
                 Image grabbedImage = camera.getGrabbedImage();
                 cameraInputImage.setImage(grabbedImage.getColorImage());
-                cameraInputImage.repaint();
                 // TODO saikat: do something using the background depth-image and foreground-image
                 // mergedImage.setImage(filterImage(grabbedImage, backgroundImage));
-                mergedImage.repaint();
                 depthImage.setImage(depthImageTransformer.convertDepthImage(grabbedImage.getDepthImage()));
-                depthImage.repaint();
+                imagesPanel.repaint();
             }
         }, 1000, CAMERA_TASK_PERIOD_IN_MILLIS);
     }
