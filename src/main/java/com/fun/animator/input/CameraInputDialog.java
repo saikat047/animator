@@ -6,9 +6,10 @@ import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.*;
+import java.util.Timer;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -21,7 +22,10 @@ import com.fun.animator.LifeCycle;
 
 public class CameraInputDialog extends JDialog implements LifeCycle {
 
-    private static final int MAX_DIFF_IN_COLORS = 20;
+    private static final int CAMERA_TASK_PERIOD_IN_MILLIS = 20;
+    private static final String BACKGROUND_DEPTH_IMAGE_FILE_NAME = "kinect-depth.png";
+    private static final File USER_HOME_DIRECTORY = new File(System.getProperty("user.home"));
+
     private ImagePanel cameraInputImage;
     private ImagePanel staticBackgroundImage;
     private ImagePanel mergedImage;
@@ -33,15 +37,12 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
     private JButton snapBackgroundButton;
 
     private DepthImageTransformer depthImageTransformer = new DefaultDepthImageTransformers();
-    private CachedRGBToColorMapper cachedRGBToColorMapper = new CachedRGBToColorMapper();
     private Camera camera;
-    public long frameDelayInMillis = 10L;
-    private Thread cameraThread;
-    private boolean stopCameraAsap = false;
+    private java.util.Timer cameraRunner;
     private Image backgroundImage;
 
-    private int minDepth = Integer.MAX_VALUE;
-    private int maxDepth = Integer.MIN_VALUE;
+    public long frameDelayInMillis = 10L;
+
 
     CameraInputDialog(JFrame parent) {
         super(parent, true);
@@ -61,6 +62,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
         delayBetweenTwoFramesField = new JTextField(Long.toString(frameDelayInMillis));
         delayBetweenTwoFramesField.setColumns(5);
         camera = new OpenKinectCamera();
+        cameraRunner = new Timer("Animator", true);
     }
 
     private JPanel wrapImagePanel(ImagePanel imagePanel) {
@@ -103,12 +105,8 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
         addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
-                stopCameraAsap = true;
-                try {
-                    cameraThread.join();
-                } catch (InterruptedException ex) {
-                    ex.printStackTrace();
-                }
+                cameraRunner.cancel();
+                cameraRunner.purge();
             }
 
             @Override
@@ -122,7 +120,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
             @Override
             public void actionPerformed(ActionEvent event) {
                 backgroundImage = camera.getGrabbedImage().deepCopy();
-                final File outputFile = new File("/Users/kazi.saikat/kinect-depth.png");
+                final File outputFile = new File(USER_HOME_DIRECTORY, BACKGROUND_DEPTH_IMAGE_FILE_NAME);
                 try {
                     ImageIO.write(backgroundImage.getDepthImage(), "png", outputFile);
                 } catch (IOException e) {
@@ -134,27 +132,6 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
 
         });
 
-        cameraThread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                while (!stopCameraAsap) {
-                    try {
-                        Thread.sleep(frameDelayInMillis);
-                    } catch (InterruptedException e) {
-                    }
-                    staticBackgroundImage.setImage(backgroundImage == null ? null : backgroundImage.getColorImage());
-                    staticBackgroundImage.repaint();
-                    Image grabbedImage = camera.getGrabbedImage();
-                    cameraInputImage.setImage(grabbedImage.getColorImage());
-                    cameraInputImage.repaint();
-                    mergedImage.setImage(filterImage(grabbedImage, backgroundImage));
-                    mergedImage.repaint();
-                    depthImage.setImage(depthImageTransformer.convertDepthImage(grabbedImage.getDepthImage()));
-                    depthImage.repaint();
-                }
-            }
-        });
-
         delayBetweenTwoFramesField.addFocusListener(new FocusAdapter() {
             @Override
             public void focusLost(FocusEvent e) {
@@ -164,40 +141,6 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
                 }
             }
         });
-    }
-
-    private BufferedImage filterImage(Image source, Image background) {
-        if (background == null) {
-            return source.getColorImage();
-        }
-
-        BufferedImage result = new BufferedImage(source.getWidth(), source.getHeight(), source.getColorImageType());
-        final int width = background.getWidth();
-        final int height = background.getHeight();
-        for (int x = 0; x < width; x++) {
-            for (int y = 0; y < height; y++) {
-                Color backgroundColor = cachedRGBToColorMapper.map(background.getRGB(x, y));
-                Color sourceColor = cachedRGBToColorMapper.map(source.getRGB(x, y));
-                if (isColorsAlmostSame(backgroundColor, sourceColor)) {
-                    result.setRGB(x, y, Color.BLACK.getRGB());
-                } else {
-                    result.setRGB(x, y, sourceColor.getRGB());
-                }
-            }
-        }
-        return result;
-    }
-
-    private boolean isColorsAlmostSame(Color backgroundColor, Color sourceColor) {
-        final int diffBlue = Math.abs(sourceColor.getBlue() - backgroundColor.getBlue());
-        final int diffRed = Math.abs(sourceColor.getRed() - backgroundColor.getRed());
-        final int diffGreen = Math.abs(sourceColor.getGreen() - backgroundColor.getGreen());
-        final int diffAlpha = Math.abs(sourceColor.getAlpha() - backgroundColor.getAlpha());
-
-        return diffBlue < MAX_DIFF_IN_COLORS &&
-               diffRed < MAX_DIFF_IN_COLORS &&
-               diffGreen < MAX_DIFF_IN_COLORS &&
-               diffAlpha < MAX_DIFF_IN_COLORS;
     }
 
     @Override
@@ -218,14 +161,28 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
 
         setResizable(true);
         pack();
-        SwingUtilities.invokeLater(new Runnable() {
+
+        camera.initialize();
+        camera.start();
+        cameraRunner.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-                camera.initialize();
-                camera.start();
-                cameraThread.start();
+                try {
+                    Thread.sleep(Math.max(1, frameDelayInMillis - CAMERA_TASK_PERIOD_IN_MILLIS));
+                } catch (InterruptedException e) {
+                }
+                staticBackgroundImage.setImage(backgroundImage == null ? null : backgroundImage.getColorImage());
+                staticBackgroundImage.repaint();
+                Image grabbedImage = camera.getGrabbedImage();
+                cameraInputImage.setImage(grabbedImage.getColorImage());
+                cameraInputImage.repaint();
+                // TODO saikat: do something using the background depth-image and foreground-image
+                // mergedImage.setImage(filterImage(grabbedImage, backgroundImage));
+                mergedImage.repaint();
+                depthImage.setImage(depthImageTransformer.convertDepthImage(grabbedImage.getDepthImage()));
+                depthImage.repaint();
             }
-        });
+        }, 1000, CAMERA_TASK_PERIOD_IN_MILLIS);
     }
 
     private void shutdownCamera() {
