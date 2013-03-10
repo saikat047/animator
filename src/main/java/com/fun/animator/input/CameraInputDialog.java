@@ -52,8 +52,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
 
     private Image backgroundImage;
     private long frameDelayInMillis = 20L;
-    // TODO saikat: seems like if set to something around 17000000,
-    //              the difference between two depth frames become almost gone.
+
     private int maxAllowedDifferenceInConsequentImagesInCM = 2;
     private final List<JRadioButton> kinectDepthOptionButtons = Arrays.asList(
             new JRadioButton("FREENECT_DEPTH_11BIT"),
