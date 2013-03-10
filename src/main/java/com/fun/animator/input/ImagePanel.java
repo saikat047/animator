@@ -39,8 +39,9 @@ public class ImagePanel extends JPanel {
     }
 
     private void fireRegionSelectedEvent() {
+        final BufferedImage depthImage = image;
         for (RegionSelectionListener regionSelectionListener : regionSelectionListeners) {
-            regionSelectionListener.regionSelected(selectedRegionStart, selectedRegion);
+            regionSelectionListener.regionSelected(depthImage, selectedRegionStart, selectedRegion);
         }
     }
 
@@ -86,7 +87,7 @@ public class ImagePanel extends JPanel {
          * The given region has co-ordinates relative to the image panel.
          * @param rectangle
          */
-        public void regionSelected(final Point start, final Rectangle rectangle);
+        public void regionSelected(final BufferedImage depthImage, final Point start, final Rectangle rectangle);
     }
 
     private class MouseRegionSelectionAdapter extends MouseAdapter {
