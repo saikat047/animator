@@ -264,7 +264,6 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
         camera.start();
         final CompositeImageWithDepth compositeImage = new CompositeImageWithDepth(3);
         cameraRunner.scheduleAtFixedRate(new TimerTask() {
-            private Image previousImage = null;
             @Override
             public void run() {
                 try {
@@ -287,9 +286,6 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
                 depthImage.setImage(depthImageTransformer.convertDepthImage(compositeImage));
 
                 imagesPanel.repaint();
-
-
-                previousImage = grabbedImageCopy;
 
                 if (recording) {
                     imageSequenceRecorder.add(grabbedImage);
