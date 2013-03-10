@@ -21,6 +21,10 @@ public class CompositeImageWithDepth implements Image {
         }
     }
 
+    public boolean isEmpty() {
+        return images.isEmpty();
+    }
+
     @Override
     public int getDepth(int x, int y) {
         final int depth = images.get(0).getDepth(x, y);

@@ -54,7 +54,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
     private long frameDelayInMillis = 20L;
     // TODO saikat: seems like if set to something around 17000000,
     //              the difference between two depth frames become almost gone.
-    private int maxAllowedDifferenceInConsequentImagesInCM = 1;
+    private int maxAllowedDifferenceInConsequentImagesInCM = 2;
     private final List<JRadioButton> kinectDepthOptionButtons = Arrays.asList(
             new JRadioButton("FREENECT_DEPTH_11BIT"),
             new JRadioButton("FREENECT_DEPTH_10BIT"),
@@ -262,7 +262,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
         imageSequenceRecorder = new DefaultImageSequenceRecorder(5, SAVE_DIRECTORY);
         camera.initialize();
         camera.start();
-        final CompositeImageWithDepth compositeImage = new CompositeImageWithDepth(5);
+        final CompositeImageWithDepth compositeImage = new CompositeImageWithDepth(3);
         cameraRunner.scheduleAtFixedRate(new TimerTask() {
             private Image previousImage = null;
             @Override
@@ -279,11 +279,11 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
                 staticBackgroundImage.setImage(backgroundImage == null ? null : depthImageTransformer.convertDepthImage(backgroundImage));
 
                 final Image grabbedImage = camera.getGrabbedImage();
+                cameraInputImage.setImage(grabbedImage.getColorImage());
+                mergedImage.setImage(diffDepthImage(grabbedImage, compositeImage.isEmpty() ? null : compositeImage));
+
                 final Image grabbedImageCopy = grabbedImage.deepCopy();
                 compositeImage.add(grabbedImageCopy);
-
-                cameraInputImage.setImage(grabbedImage.getColorImage());
-                mergedImage.setImage(diffDepthImage(grabbedImage, previousImage));
                 depthImage.setImage(depthImageTransformer.convertDepthImage(compositeImage));
 
                 imagesPanel.repaint();
@@ -306,7 +306,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
                         int goodRGB = image.getDepth(x, y);
                         int badRGB = previousImage.getDepth(x, y);
                         int difference = Math.abs(goodRGB - badRGB);
-                        if (difference <= maxAllowedDifferenceInConsequentImagesInCM) {
+                        if (difference <= maxAllowedDifferenceInConsequentImagesInCM * DepthImageTransformer.DIFF_CENTIMETER) {
                             diffImage.setRGB(x, y, Color.BLACK.getRGB());
                         } else {
                             // some difference found
