@@ -4,16 +4,16 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.io.IOException;
 import java.util.*;
+import java.util.List;
 import java.util.Timer;
-import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
@@ -23,16 +23,13 @@ import javax.swing.event.ChangeListener;
 
 import com.fun.animator.AnimatorInitializer;
 import com.fun.animator.LifeCycle;
+import com.googlecode.javacv.OpenKinectFrameGrabber;
 
 public class CameraInputDialog extends JDialog implements LifeCycle {
 
-    private static final int CAMERA_TASK_PERIOD_IN_MILLIS = 20;
-    private static final String BACKGROUND_DEPTH_IMAGE_FILE_NAME = "kinect-depth";
-    private static final String BACKGROUND_DEPTH_CONVERTED_IMAGE_FILE_NAME = "kinect-converted";
+    private static final int CAMERA_TASK_PERIOD_IN_MILLIS = 100;
     private static final File USER_HOME_DIRECTORY = new File(System.getProperty("user.home"));
     private static final File SAVE_DIRECTORY = new File(USER_HOME_DIRECTORY, "kinect-animator");
-
-    private final AtomicInteger imageToDiskNumber = new AtomicInteger(0);
 
     private ImagePanel cameraInputImage;
     private ImagePanel staticBackgroundImage;
@@ -54,10 +51,18 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
     private java.util.Timer cameraRunner;
 
     private Image backgroundImage;
-    public long frameDelayInMillis = 10L;
+    private long frameDelayInMillis = 10L;
     // TODO saikat: seems like if set to something around 17000000,
     //              the difference between two depth frames become almost gone.
-    public long maxAllowedDifferenceInConsequentImages = 1000L;
+    private long maxAllowedDifferenceInConsequentImages = 1000L;
+    private final List<JRadioButton> kinectDepthOptionButtons = Arrays.asList(
+            new JRadioButton("FREENECT_DEPTH_11BIT"),
+            new JRadioButton("FREENECT_DEPTH_10BIT"),
+            new JRadioButton("FREENECT_DEPTH_11BIT_PACKED"),
+            new JRadioButton("FREENECT_DEPTH_10BIT_PACKED"),
+            new JRadioButton("FREENECT_DEPTH_REGISTERED"),
+            new JRadioButton("FREENECT_DEPTH_MM")
+    );
 
     CameraInputDialog(JFrame parent) {
         super(parent, true);
@@ -103,6 +108,18 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
         BoxLayout boxLayout = new BoxLayout(leftPanel, BoxLayout.PAGE_AXIS);
         leftPanel.setLayout(boxLayout);
         leftPanel.add(inputPanel);
+
+        JPanel radioButtonsPanel = new JPanel();
+        BoxLayout radioButtonsLayout = new BoxLayout(radioButtonsPanel, BoxLayout.PAGE_AXIS);
+        radioButtonsPanel.setLayout(radioButtonsLayout);
+        for (JRadioButton radioButton : kinectDepthOptionButtons) {
+            radioButtonsPanel.add(radioButton);
+        }
+        radioButtonsPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createEmptyBorder(5, 5, 5, 5),
+                BorderFactory.createLineBorder(Color.BLACK, 2)
+        ));
+        leftPanel.add(radioButtonsPanel);
         leftPanel.add(startRecordingButton);
         leftPanel.add(stopRecordingButton);
         leftPanel.add(toggleBackgroundButton);
@@ -130,8 +147,8 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
 
             @Override
             public void windowClosed(WindowEvent e) {
-                stopCamera();
-                shutdownCamera();
+                stopCamera(camera);
+                shutdownCamera(camera);
             }
         });
 
@@ -180,28 +197,44 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
                 mediateRecordingButtons(recording);
             }
         });
+
+        final ItemListener kinectDepthSelectionListener = new ItemListener() {
+            private boolean running = false;
+
+            @Override
+            public void itemStateChanged(ItemEvent e) {
+                if (running) {
+                    return;
+                }
+                running = true;
+                try {
+                    stopCamera(camera);
+                    shutdownCamera(camera);
+                    camera = new OpenKinectCamera();
+                    camera.initialize();
+                    OpenKinectFrameGrabber grabber = (OpenKinectFrameGrabber) camera.getGrabber();
+                    grabber.setDepthFormat(kinectDepthOptionButtons.indexOf(e.getItem()));
+                    camera.start();
+
+                    for (JRadioButton button : kinectDepthOptionButtons) {
+                        if (button.isSelected() && button != e.getItem()) {
+                            button.setSelected(false);
+                        }
+                    }
+                } finally {
+                    running = false;
+                }
+            }
+        };
+
+        for (JRadioButton radioButton : kinectDepthOptionButtons) {
+            radioButton.addItemListener(kinectDepthSelectionListener);
+        }
     }
 
     private void mediateRecordingButtons(boolean recording) {
         startRecordingButton.setEnabled(!recording);
         stopRecordingButton.setEnabled(recording);
-    }
-
-    private void writeImageToFile(Image image, int imageNumber) {
-        writeImageToFile(image.getDepthImage(),
-                         new File(SAVE_DIRECTORY, String.format("%d.%s.png", imageNumber, BACKGROUND_DEPTH_IMAGE_FILE_NAME)));
-        writeImageToFile(depthImageTransformer.convertDepthImage(image),
-                         new File(SAVE_DIRECTORY, String.format("%d.%s.png", imageNumber, BACKGROUND_DEPTH_CONVERTED_IMAGE_FILE_NAME)));
-    }
-
-    private void writeImageToFile(BufferedImage image, File outputFile) {
-        System.out.println("writing image -> " + outputFile.getAbsolutePath());
-        try {
-            ImageIO.write(image, "png", outputFile);
-        } catch (IOException e) {
-            e.printStackTrace();
-            System.out.println(String.format("Unable to write to: %s", outputFile.getAbsolutePath()));
-        }
     }
 
     @Override
@@ -235,6 +268,10 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
                     Thread.sleep(Math.max(1, frameDelayInMillis - CAMERA_TASK_PERIOD_IN_MILLIS));
                 } catch (InterruptedException e) {
                 }
+
+                if (!camera.isStarted()) {
+                    return;
+                }
                 staticBackgroundImage.setImage(backgroundImage == null ? null : depthImageTransformer.convertDepthImage(backgroundImage));
                 Image grabbedImage = camera.getGrabbedImage();
                 cameraInputImage.setImage(grabbedImage.getColorImage());
@@ -247,8 +284,6 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
                 if (recording) {
                     imageSequenceRecorder.add(grabbedImage);
                 }
-                previousImage = grabbedImage.deepCopy();
-                grabbedImage = null;
             }
 
             private BufferedImage diffDepthImage(Image image, Image previousImage) {
@@ -258,9 +293,9 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
                 final BufferedImage diffImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_RGB);
                 for (int x = 0; x < image.getWidth(); x++) {
                     for (int y = 0; y < image.getHeight(); y++) {
-                        long goodRGB = image.getDepth(x, y);
-                        long badRGB = previousImage.getDepth(x, y);
-                        long difference = Math.abs(goodRGB - badRGB);
+                        int goodRGB = image.getDepth(x, y);
+                        int badRGB = previousImage.getDepth(x, y);
+                        int difference = Math.abs(goodRGB - badRGB);
                         if (difference <= maxAllowedDifferenceInConsequentImages) {
                             diffImage.setRGB(x, y, Color.BLACK.getRGB());
                         } else {
@@ -275,7 +310,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
         }, 1000, CAMERA_TASK_PERIOD_IN_MILLIS);
     }
 
-    private void shutdownCamera() {
+    private void shutdownCamera(Camera camera) {
         if (camera.isInitialized()) {
             try {
                 camera.release();
@@ -285,7 +320,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
         }
     }
 
-    private void stopCamera() {
+    private void stopCamera(Camera camera) {
         if (camera.isStarted()) {
             try {
                 camera.stop();

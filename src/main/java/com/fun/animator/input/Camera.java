@@ -1,7 +1,5 @@
 package com.fun.animator.input;
 
-import java.awt.image.BufferedImage;
-
 import com.googlecode.javacv.FrameGrabber;
 import com.googlecode.javacv.cpp.opencv_core;
 
@@ -41,6 +39,10 @@ public class Camera {
         return started;
     }
 
+    public FrameGrabber getGrabber() {
+        return grabber;
+    }
+
     public void start() {
         try {
             grabber.start();
@@ -66,6 +68,7 @@ public class Camera {
 
     public void stop() {
         try {
+            started = false;
             grabber.stop();
         } catch (FrameGrabber.Exception e) {
             throw new RuntimeException("unable to stop grabber", e);
