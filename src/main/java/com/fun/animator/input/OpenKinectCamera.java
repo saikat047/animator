@@ -2,6 +2,7 @@ package com.fun.animator.input;
 
 import com.googlecode.javacv.FrameGrabber;
 import com.googlecode.javacv.OpenKinectFrameGrabber;
+import com.googlecode.javacv.cpp.freenect;
 import com.googlecode.javacv.cpp.opencv_core;
 
 public class OpenKinectCamera extends Camera {
@@ -11,6 +12,8 @@ public class OpenKinectCamera extends Camera {
     @Override
     protected FrameGrabber createFrameGrabber() throws FrameGrabber.Exception {
         openKinectFrameGrabber = new OpenKinectFrameGrabber(0);
+        openKinectFrameGrabber.setDepthFormat(freenect.FREENECT_DEPTH_11BIT);
+        openKinectFrameGrabber.setImageMode(FrameGrabber.ImageMode.RAW);
         return openKinectFrameGrabber;
     }
 

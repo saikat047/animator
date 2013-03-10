@@ -4,14 +4,11 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
-import java.awt.event.ItemEvent;
-import java.awt.event.ItemListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.util.*;
-import java.util.List;
 import java.util.Timer;
 
 import javax.swing.*;
@@ -23,7 +20,6 @@ import javax.swing.event.ChangeListener;
 
 import com.fun.animator.AnimatorInitializer;
 import com.fun.animator.LifeCycle;
-import com.googlecode.javacv.OpenKinectFrameGrabber;
 
 public class CameraInputDialog extends JDialog implements LifeCycle {
 
@@ -54,14 +50,6 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
     private long frameDelayInMillis = 20L;
 
     private int maxAllowedDifferenceInConsequentImagesInCM = 2;
-    private final List<JRadioButton> kinectDepthOptionButtons = Arrays.asList(
-            new JRadioButton("FREENECT_DEPTH_11BIT"),
-            new JRadioButton("FREENECT_DEPTH_10BIT"),
-            new JRadioButton("FREENECT_DEPTH_11BIT_PACKED"),
-            new JRadioButton("FREENECT_DEPTH_10BIT_PACKED"),
-            new JRadioButton("FREENECT_DEPTH_REGISTERED"),
-            new JRadioButton("FREENECT_DEPTH_MM")
-    );
 
     CameraInputDialog(JFrame parent) {
         super(parent, true);
@@ -107,18 +95,6 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
         BoxLayout boxLayout = new BoxLayout(leftPanel, BoxLayout.PAGE_AXIS);
         leftPanel.setLayout(boxLayout);
         leftPanel.add(inputPanel);
-
-        JPanel radioButtonsPanel = new JPanel();
-        BoxLayout radioButtonsLayout = new BoxLayout(radioButtonsPanel, BoxLayout.PAGE_AXIS);
-        radioButtonsPanel.setLayout(radioButtonsLayout);
-        for (JRadioButton radioButton : kinectDepthOptionButtons) {
-            radioButtonsPanel.add(radioButton);
-        }
-        radioButtonsPanel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createEmptyBorder(5, 5, 5, 5),
-                BorderFactory.createLineBorder(Color.BLACK, 2)
-        ));
-        leftPanel.add(radioButtonsPanel);
         leftPanel.add(startRecordingButton);
         leftPanel.add(stopRecordingButton);
         leftPanel.add(toggleBackgroundButton);
@@ -175,9 +151,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
         maxAllowedDifferenceInConsequentImageTextField.addFocusListener(new FocusAdapter() {
             @Override
             public void focusLost(FocusEvent e) {
-                maxAllowedDifferenceInConsequentImagesInCM =
-                        DefaultDepthImageTransformers.DIFF_CENTIMETER *
-                                Integer.parseInt(maxAllowedDifferenceInConsequentImageTextField.getText());
+                maxAllowedDifferenceInConsequentImagesInCM = Integer.parseInt(maxAllowedDifferenceInConsequentImageTextField.getText());
             }
         });
 
@@ -198,39 +172,6 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
                 mediateRecordingButtons(recording);
             }
         });
-
-        final ItemListener kinectDepthSelectionListener = new ItemListener() {
-            private boolean running = false;
-
-            @Override
-            public void itemStateChanged(ItemEvent e) {
-                if (running) {
-                    return;
-                }
-                running = true;
-                try {
-                    stopCamera(camera);
-                    shutdownCamera(camera);
-                    camera = new OpenKinectCamera();
-                    camera.initialize();
-                    OpenKinectFrameGrabber grabber = (OpenKinectFrameGrabber) camera.getGrabber();
-                    grabber.setDepthFormat(kinectDepthOptionButtons.indexOf(e.getItem()));
-                    camera.start();
-
-                    for (JRadioButton button : kinectDepthOptionButtons) {
-                        if (button.isSelected() && button != e.getItem()) {
-                            button.setSelected(false);
-                        }
-                    }
-                } finally {
-                    running = false;
-                }
-            }
-        };
-
-        for (JRadioButton radioButton : kinectDepthOptionButtons) {
-            radioButton.addItemListener(kinectDepthSelectionListener);
-        }
     }
 
     private void mediateRecordingButtons(boolean recording) {
