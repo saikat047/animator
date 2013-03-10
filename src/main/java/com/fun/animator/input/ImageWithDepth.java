@@ -13,8 +13,6 @@ public class ImageWithDepth implements Image {
     private final BufferedImage depthImage;
     private final int width;
     private final int height;
-    private final int maxDepth;
-    private final int minDepth;
 
     ImageWithDepth(opencv_core.IplImage colorImage, double gamma, opencv_core.IplImage depthImage) {
         this(colorImage.getBufferedImage(gamma), depthImage == null ? null : depthImage.getBufferedImage());
@@ -25,19 +23,6 @@ public class ImageWithDepth implements Image {
         this.depthImage = depthImage;
         width = colorImage.getWidth();
         height = colorImage.getHeight();
-        final DepthInfo depthInfo = new DepthInfo();
-        if (depthImage != null) {
-            for (int x = 0; x < depthImage.getWidth(); x++) {
-                for (int y = 0; y < depthImage.getHeight(); y++) {
-                    depthInfo.update(depthImage.getRGB(x, y));
-                }
-            }
-            this.minDepth = depthInfo.getMinValue();
-            this.maxDepth = depthInfo.getMaxValue();
-        } else {
-            minDepth = -1;
-            maxDepth = -1;
-        }
     }
 
     @Override
@@ -81,41 +66,5 @@ public class ImageWithDepth implements Image {
             }
         }
         return resultImage;
-    }
-
-    @Override
-    public int getMaxDepth() {
-        return maxDepth;
-    }
-
-    @Override
-    public int getMinDepth() {
-        return minDepth;
-    }
-
-    private static class DepthInfo {
-        private int minValue = Integer.MAX_VALUE;
-        private int maxValue = 0;
-
-        public DepthInfo() {
-        }
-
-        public void update(int depthValue) {
-            final int value = depthValue & DEPTH_MASK;
-            if (value < minValue) {
-                minValue = value;
-            }
-            if (value > maxValue) {
-                maxValue = value;
-            }
-        }
-
-        public int getMinValue() {
-            return minValue;
-        }
-
-        public int getMaxValue() {
-            return maxValue;
-        }
     }
 }

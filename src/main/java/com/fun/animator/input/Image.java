@@ -6,10 +6,6 @@ public interface Image {
 
     int getDepth(int x, int y);
 
-    int getMaxDepth();
-
-    int getMinDepth();
-
     int getWidth();
 
     int getHeight();

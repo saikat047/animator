@@ -51,7 +51,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
     private java.util.Timer cameraRunner;
 
     private Image backgroundImage;
-    private long frameDelayInMillis = 333L;
+    private long frameDelayInMillis = 20L;
     // TODO saikat: seems like if set to something around 17000000,
     //              the difference between two depth frames become almost gone.
     private int maxAllowedDifferenceInConsequentImagesInCM = 1;
@@ -262,6 +262,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
         imageSequenceRecorder = new DefaultImageSequenceRecorder(5, SAVE_DIRECTORY);
         camera.initialize();
         camera.start();
+        final CompositeImageWithDepth compositeImage = new CompositeImageWithDepth(5);
         cameraRunner.scheduleAtFixedRate(new TimerTask() {
             private Image previousImage = null;
             @Override
@@ -276,14 +277,20 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
                 }
 
                 staticBackgroundImage.setImage(backgroundImage == null ? null : depthImageTransformer.convertDepthImage(backgroundImage));
-                Image grabbedImage = camera.getGrabbedImage();
+
+                final Image grabbedImage = camera.getGrabbedImage();
+                final Image grabbedImageCopy = grabbedImage.deepCopy();
+                compositeImage.add(grabbedImageCopy);
+
                 cameraInputImage.setImage(grabbedImage.getColorImage());
                 mergedImage.setImage(diffDepthImage(grabbedImage, previousImage));
-                // TODO saikat: if background image is snapped, filter all depth value in
-                //              grabbedImage that has same depth as background.
-                depthImage.setImage(depthImageTransformer.convertDepthImage(grabbedImage));
+                depthImage.setImage(depthImageTransformer.convertDepthImage(compositeImage));
+
                 imagesPanel.repaint();
-                previousImage = grabbedImage.deepCopy();
+
+
+                previousImage = grabbedImageCopy;
+
                 if (recording) {
                     imageSequenceRecorder.add(grabbedImage);
                 }

@@ -5,11 +5,6 @@ import java.awt.image.BufferedImage;
 
 public class DefaultDepthImageTransformers implements DepthImageTransformer {
 
-    public static final int DIFF_CENTIMETER = 0x80;
-    // minimum depth: in 100 cm
-    private static final int DEPTH_MIN = 0x00003200;
-    // maximum depth: 511 cm
-    private static final int DEPTH_MAX = 0x0000FFFF;
     private static final double DEPTH_MAX_FOR_COLOR = DEPTH_MIN + 0.95 * (DEPTH_MAX - DEPTH_MIN);
 
     @Override
