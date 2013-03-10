@@ -50,6 +50,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
     private long frameDelayInMillis = 20L;
 
     private int maxAllowedDifferenceInConsequentImagesInCM = 2;
+    private CompositeImageWithDepth compositeImage;
 
     CameraInputDialog(JFrame parent) {
         super(parent, true);
@@ -70,6 +71,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
         delayBetweenTwoFramesField.setColumns(5);
         maxAllowedDifferenceInConsequentImageTextField = new JTextField(Long.toString(maxAllowedDifferenceInConsequentImagesInCM));
         maxAllowedDifferenceInConsequentImageTextField.setColumns(6);
+        compositeImage = new CompositeImageWithDepth(3);
         camera = new OpenKinectCamera();
         cameraRunner = new Timer("Animator", true);
     }
@@ -134,7 +136,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
                     backgroundImage = null;
                     return;
                 }
-                backgroundImage = camera.getGrabbedImage().deepCopy();
+                backgroundImage = compositeImage.deepCopy();
             }
         });
 
@@ -202,7 +204,6 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
         imageSequenceRecorder = new DefaultImageSequenceRecorder(5, SAVE_DIRECTORY);
         camera.initialize();
         camera.start();
-        final CompositeImageWithDepth compositeImage = new CompositeImageWithDepth(3);
         cameraRunner.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
