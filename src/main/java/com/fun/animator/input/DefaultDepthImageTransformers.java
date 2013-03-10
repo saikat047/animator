@@ -5,15 +5,15 @@ import java.awt.image.BufferedImage;
 
 public class DefaultDepthImageTransformers implements DepthImageTransformer {
 
+    public static final int DIFF_CENTIMETER = 0x80;
+    // minimum depth: in 100 cm
+    private static final int DEPTH_MIN = 0x00003200;
+    // maximum depth: 511 cm
+    private static final int DEPTH_MAX = 0x0000FFFF;
+    private static final double DEPTH_MAX_FOR_COLOR = DEPTH_MIN + 0.95 * (DEPTH_MAX - DEPTH_MIN);
+
     @Override
     public BufferedImage convertDepthImage(Image image) {
-        // TODO saikat: Move the max/min depth calculation out of this method
-        //              and accept these as parameters
-        final int minDepth =image.getMinDepth();
-        final int maxDepth =image.getMaxDepth();
-        final double maxDepthForColor = minDepth + 0.85 * (maxDepth - minDepth);
-        System.out.println(String.format("minDepth: %d, maxDepth: %d, maxDepthForColor: %d",
-                                         minDepth, maxDepth, (long) maxDepthForColor));
         // WARNING: THE ADDITION OF THE TWO INDIVIDUAL COLOR COMPONENTS BELOW MUST NEVER
         //          BE HIGHER THAN 255 WHICH IS THE MAXIMUM VALUE ALLOWED ON A SINGLE
         //          COLOR COMPONENT.
@@ -25,13 +25,13 @@ public class DefaultDepthImageTransformers implements DepthImageTransformer {
             for (int y = 0; y < image.getHeight(); y++) {
                 final int depthValue = image.getDepth(x, y);
                 final int color;
-                if (depthValue > maxDepthForColor) {
-                    final double depthRatio = 1 - (depthValue - maxDepthForColor) / (maxDepth - maxDepthForColor);
+                if (depthValue > DEPTH_MAX_FOR_COLOR) {
+                    final double depthRatio = 1 - (depthValue - DEPTH_MAX_FOR_COLOR) / (DEPTH_MAX - DEPTH_MAX_FOR_COLOR);
                     color = new Color((int) (depthRatio * minColorForScalingZone.getRed()),
                                       (int) (depthRatio * minColorForScalingZone.getGreen()),
                                       (int) (depthRatio * minColorForScalingZone.getBlue())).getRGB();
                 } else {
-                    double depthRatio = 1 - (depthValue - minDepth) / (maxDepthForColor - minDepth);
+                    double depthRatio = 1 - (depthValue - DEPTH_MIN) / (DEPTH_MAX_FOR_COLOR - DEPTH_MIN);
                     depthRatio = Math.min(depthRatio, 1.0);
                     color = new Color((int) (minColorForScalingZone.getRed() + depthRatio * scalingColorForScalingZone.getRed()),
                                       (int) (minColorForScalingZone.getGreen() + depthRatio * scalingColorForScalingZone.getGreen()),
@@ -43,6 +43,4 @@ public class DefaultDepthImageTransformers implements DepthImageTransformer {
         }
         return transformedImage;
     }
-
-
 }

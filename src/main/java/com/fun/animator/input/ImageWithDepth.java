@@ -7,7 +7,7 @@ import com.googlecode.javacv.cpp.opencv_core;
 public class ImageWithDepth implements Image {
 
     // Kinect gives a maximum of 11 bit value.
-    private static final int DEPTH_MASK = 0x00FFFFFF;
+    private static final int DEPTH_MASK = 0x0000FFFF;
 
     private final BufferedImage colorImage;
     private final BufferedImage depthImage;

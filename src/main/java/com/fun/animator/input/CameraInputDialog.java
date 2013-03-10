@@ -51,10 +51,10 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
     private java.util.Timer cameraRunner;
 
     private Image backgroundImage;
-    private long frameDelayInMillis = 10L;
+    private long frameDelayInMillis = 333L;
     // TODO saikat: seems like if set to something around 17000000,
     //              the difference between two depth frames become almost gone.
-    private long maxAllowedDifferenceInConsequentImages = 1000L;
+    private int maxAllowedDifferenceInConsequentImagesInCM = 1;
     private final List<JRadioButton> kinectDepthOptionButtons = Arrays.asList(
             new JRadioButton("FREENECT_DEPTH_11BIT"),
             new JRadioButton("FREENECT_DEPTH_10BIT"),
@@ -81,7 +81,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
         playRecordingButton = new JButton("Play");
         delayBetweenTwoFramesField = new JTextField(Long.toString(frameDelayInMillis));
         delayBetweenTwoFramesField.setColumns(5);
-        maxAllowedDifferenceInConsequentImageTextField = new JTextField(Long.toString(maxAllowedDifferenceInConsequentImages));
+        maxAllowedDifferenceInConsequentImageTextField = new JTextField(Long.toString(maxAllowedDifferenceInConsequentImagesInCM));
         maxAllowedDifferenceInConsequentImageTextField.setColumns(6);
         camera = new OpenKinectCamera();
         cameraRunner = new Timer("Animator", true);
@@ -101,7 +101,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
         JPanel inputPanel = new JPanel(new GridLayout(2, 2));
         inputPanel.add(new JLabel("Delay (in millis):"));
         inputPanel.add(delayBetweenTwoFramesField);
-        inputPanel.add(new JLabel("Max diff : "));
+        inputPanel.add(new JLabel("Max diff (in cm) : "));
         inputPanel.add(maxAllowedDifferenceInConsequentImageTextField);
 
         JPanel leftPanel = new JPanel();
@@ -176,7 +176,9 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
         maxAllowedDifferenceInConsequentImageTextField.addFocusListener(new FocusAdapter() {
             @Override
             public void focusLost(FocusEvent e) {
-                maxAllowedDifferenceInConsequentImages = Long.parseLong(maxAllowedDifferenceInConsequentImageTextField.getText());
+                maxAllowedDifferenceInConsequentImagesInCM =
+                        DefaultDepthImageTransformers.DIFF_CENTIMETER *
+                                Integer.parseInt(maxAllowedDifferenceInConsequentImageTextField.getText());
             }
         });
 
@@ -272,6 +274,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
                 if (!camera.isStarted()) {
                     return;
                 }
+
                 staticBackgroundImage.setImage(backgroundImage == null ? null : depthImageTransformer.convertDepthImage(backgroundImage));
                 Image grabbedImage = camera.getGrabbedImage();
                 cameraInputImage.setImage(grabbedImage.getColorImage());
@@ -280,7 +283,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
                 //              grabbedImage that has same depth as background.
                 depthImage.setImage(depthImageTransformer.convertDepthImage(grabbedImage));
                 imagesPanel.repaint();
-
+                previousImage = grabbedImage.deepCopy();
                 if (recording) {
                     imageSequenceRecorder.add(grabbedImage);
                 }
@@ -296,7 +299,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
                         int goodRGB = image.getDepth(x, y);
                         int badRGB = previousImage.getDepth(x, y);
                         int difference = Math.abs(goodRGB - badRGB);
-                        if (difference <= maxAllowedDifferenceInConsequentImages) {
+                        if (difference <= maxAllowedDifferenceInConsequentImagesInCM) {
                             diffImage.setRGB(x, y, Color.BLACK.getRGB());
                         } else {
                             // some difference found
