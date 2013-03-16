@@ -1,4 +1,4 @@
-package com.fun.animator.input;
+package com.fun.animator.image;
 
 import java.awt.image.BufferedImage;
 import java.util.LinkedList;

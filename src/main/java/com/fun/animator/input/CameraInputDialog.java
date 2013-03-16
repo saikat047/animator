@@ -20,6 +20,8 @@ import javax.swing.event.ChangeListener;
 
 import com.fun.animator.AnimatorInitializer;
 import com.fun.animator.LifeCycle;
+import com.fun.animator.image.CompositeImageWithDepth;
+import com.fun.animator.image.DefaultDepthImageTransformers;
 import com.fun.animator.image.DefaultImageSequenceRecorder;
 import com.fun.animator.image.DepthImageFilter;
 import com.fun.animator.image.DepthImageTransformer;

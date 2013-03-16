@@ -13,6 +13,7 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 
 import com.fun.animator.LifeCycle;
+import com.fun.animator.image.DefaultDepthImageTransformers;
 import com.fun.animator.image.ImagePanel;
 
 public class ImageTransformerFrame extends JFrame implements LifeCycle {

@@ -9,11 +9,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.imageio.ImageIO;
 
-import com.fun.animator.image.DepthImageTransformer;
-import com.fun.animator.image.Image;
-import com.fun.animator.image.ImageSequenceRecorder;
-import com.fun.animator.input.DefaultDepthImageTransformers;
-
 public class DefaultImageSequenceRecorder implements ImageSequenceRecorder, Runnable {
 
     private static final String BACKGROUND_DEPTH_IMAGE_FILE_NAME = "original";
