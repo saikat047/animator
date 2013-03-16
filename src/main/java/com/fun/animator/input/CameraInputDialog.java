@@ -21,7 +21,6 @@ import javax.swing.event.ChangeListener;
 import com.fun.animator.AnimatorInitializer;
 import com.fun.animator.LifeCycle;
 import com.fun.animator.image.CombinedImage;
-import com.fun.animator.image.CompositeDepthImage;
 import com.fun.animator.image.DefaultDepthImageTransformers;
 import com.fun.animator.image.DefaultImageSequenceRecorder;
 import com.fun.animator.image.DepthImage;
@@ -55,11 +54,11 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
     private Camera camera;
     private java.util.Timer cameraRunner;
 
+    private CombinedImage currentImage;
     private DepthImage backgroundDepthImage;
     private long frameDelayInMillis = 20L;
 
     private int maxAllowedDifferenceInConsequentImagesInCM = 2;
-    private CompositeDepthImage compositeDepthImage;
     private DepthImageFilter depthImageFilter = new DepthImageFilter();
 
     private JTextArea imageRegionInfo = new JTextArea("CombinedImage Region Info", 10, 10);
@@ -83,7 +82,6 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
         delayBetweenTwoFramesField.setColumns(5);
         maxAllowedDifferenceInConsequentImageTextField = new JTextField(Long.toString(maxAllowedDifferenceInConsequentImagesInCM));
         maxAllowedDifferenceInConsequentImageTextField.setColumns(6);
-        compositeDepthImage = new CompositeDepthImage(3);
         camera = new OpenKinectCamera();
         cameraRunner = new Timer("Animator", true);
     }
@@ -149,7 +147,8 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
                     backgroundDepthImage = null;
                     return;
                 }
-                backgroundDepthImage = compositeDepthImage.createCopy();
+                backgroundDepthImage = currentImage.getDepthImage().createCopy();
+                staticBackgroundImage.setImage(depthImageTransformer.createColorImage(backgroundDepthImage));
             }
         });
 
@@ -241,26 +240,20 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
                     return;
                 }
 
-                staticBackgroundImage.setImage(
-                        backgroundDepthImage == null ? null : depthImageTransformer.createColorImage(backgroundDepthImage));
-
                 final CombinedImage grabbedCombinedImage = camera.getGrabbedImage();
+                currentImage = grabbedCombinedImage;
                 BufferedImage colorImage = grabbedCombinedImage.getColorImage();
-                if (backgroundDepthImage != null) {
-                    colorImage = depthImageFilter.filterColorBasedOnBackground(grabbedCombinedImage, backgroundDepthImage);
-                }
                 cameraInputImage.setImage(colorImage);
 
                 if (backgroundDepthImage != null) {
                     mergedImage.setImage(diffDepthImage(grabbedCombinedImage, backgroundDepthImage));
                 } else {
-                    mergedImage.setImage(diffDepthImage(grabbedCombinedImage, compositeDepthImage.isEmpty() ? null : compositeDepthImage));
+                    mergedImage.setImage(
+                            depthImageTransformer.createColorImage(grabbedCombinedImage.getDepthImage())
+                    );
                 }
 
-                final DepthImage grabbedDepthImageCopy = grabbedCombinedImage.getDepthImage().createCopy();
-                compositeDepthImage.add(grabbedDepthImageCopy);
-                depthImage.setImage(depthImageTransformer.createColorImage(grabbedDepthImageCopy));
-
+                depthImage.setImage(depthImageTransformer.createColorImage(grabbedCombinedImage.getDepthImage()));
                 imagesPanel.repaint();
 
                 if (recording) {
@@ -273,7 +266,9 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
                 if (backgroundDepthImage == null) {
                     return depthImageTransformer.createColorImage(sourceDepthImage);
                 }
-                return depthImageFilter.filterColorBasedOnBackground(combinedImage, backgroundDepthImage);
+                return depthImageTransformer.createColorImage(
+                        depthImageFilter.filterColorBasedOnBackground(combinedImage.getDepthImage(), backgroundDepthImage)
+                );
             }
         }, 1000, CAMERA_TASK_PERIOD_IN_MILLIS);
     }
