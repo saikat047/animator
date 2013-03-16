@@ -28,6 +28,7 @@ import com.fun.animator.image.DepthImageFilter;
 import com.fun.animator.image.DepthImageTransformer;
 import com.fun.animator.image.ImagePanel;
 import com.fun.animator.image.ImageSequenceRecorder;
+import com.fun.animator.image.StabilizedDepthImage;
 
 public class CameraInputDialog extends JDialog implements LifeCycle {
 
@@ -54,12 +55,12 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
     private Camera camera;
     private java.util.Timer cameraRunner;
 
-    private CombinedImage currentImage;
     private DepthImage backgroundDepthImage;
+    private StabilizedDepthImage backgroundStabilizerDepthImage;
     private long frameDelayInMillis = 20L;
 
-    private int maxAllowedDifferenceInConsequentImagesInCM = 2;
-    private DepthImageFilter depthImageFilter = new DepthImageFilter();
+    private int minDiffFromBackgroundInCM = 20;
+    private DepthImageFilter depthImageFilter;
 
     private JTextArea imageRegionInfo = new JTextArea("CombinedImage Region Info", 10, 10);
 
@@ -72,7 +73,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
     public void createComponents() {
         cameraInputImage = new ImagePanel("RealTime", Color.BLUE);
         staticBackgroundImage = new ImagePanel("Background", Color.BLACK);
-        mergedImage = new ImagePanel("Difference in subsequent depth frames", Color.WHITE, Color.YELLOW);
+        mergedImage = new ImagePanel("Difference with Background", Color.WHITE, Color.YELLOW);
         depthImage = new ImagePanel("Depthscale", Color.RED);
         startRecordingButton = new JButton("Start Recording");
         stopRecordingButton = new JButton("Stop Recording");
@@ -80,8 +81,10 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
         playRecordingButton = new JButton("Play");
         delayBetweenTwoFramesField = new JTextField(Long.toString(frameDelayInMillis));
         delayBetweenTwoFramesField.setColumns(5);
-        maxAllowedDifferenceInConsequentImageTextField = new JTextField(Long.toString(maxAllowedDifferenceInConsequentImagesInCM));
+        maxAllowedDifferenceInConsequentImageTextField = new JTextField(Long.toString(minDiffFromBackgroundInCM));
         maxAllowedDifferenceInConsequentImageTextField.setColumns(6);
+        depthImageFilter = new DepthImageFilter();
+        depthImageFilter.setMinDiffWithBackGroundInCM(minDiffFromBackgroundInCM);
         camera = new OpenKinectCamera();
         cameraRunner = new Timer("Animator", true);
     }
@@ -100,7 +103,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
         JPanel inputPanel = new JPanel(new GridLayout(2, 2));
         inputPanel.add(new JLabel("Delay (in millis):"));
         inputPanel.add(delayBetweenTwoFramesField);
-        inputPanel.add(new JLabel("Max diff (in cm) : "));
+        inputPanel.add(new JLabel("Background diff (in cm) : "));
         inputPanel.add(maxAllowedDifferenceInConsequentImageTextField);
 
         JPanel leftPanel = new JPanel();
@@ -147,7 +150,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
                     backgroundDepthImage = null;
                     return;
                 }
-                backgroundDepthImage = currentImage.getDepthImage().createCopy();
+                backgroundDepthImage = backgroundStabilizerDepthImage.createCopy();
                 staticBackgroundImage.setImage(depthImageTransformer.createColorImage(backgroundDepthImage));
             }
         });
@@ -165,8 +168,8 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
         maxAllowedDifferenceInConsequentImageTextField.addFocusListener(new FocusAdapter() {
             @Override
             public void focusLost(FocusEvent e) {
-                maxAllowedDifferenceInConsequentImagesInCM = Integer.parseInt(maxAllowedDifferenceInConsequentImageTextField.getText());
-                depthImageFilter.setMinDiffWithBackGroundInCM(maxAllowedDifferenceInConsequentImagesInCM);
+                minDiffFromBackgroundInCM = Integer.parseInt(maxAllowedDifferenceInConsequentImageTextField.getText());
+                depthImageFilter.setMinDiffWithBackGroundInCM(minDiffFromBackgroundInCM);
             }
         });
 
@@ -225,6 +228,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
         setResizable(true);
         pack();
 
+        backgroundStabilizerDepthImage = new StabilizedDepthImage();
         imageSequenceRecorder = new DefaultImageSequenceRecorder(5, SAVE_DIRECTORY);
         camera.initialize();
         camera.start();
@@ -241,17 +245,13 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
                 }
 
                 final CombinedImage grabbedCombinedImage = camera.getGrabbedImage();
-                currentImage = grabbedCombinedImage;
-                BufferedImage colorImage = grabbedCombinedImage.getColorImage();
+                backgroundStabilizerDepthImage.updateUnreadablePixels(grabbedCombinedImage.getDepthImage());
+                staticBackgroundImage.setImage(depthImageTransformer.createColorImage(backgroundStabilizerDepthImage));
+
+                final BufferedImage colorImage = grabbedCombinedImage.getColorImage();
                 cameraInputImage.setImage(colorImage);
 
-                if (backgroundDepthImage != null) {
-                    mergedImage.setImage(diffDepthImage(grabbedCombinedImage, backgroundDepthImage));
-                } else {
-                    mergedImage.setImage(
-                            depthImageTransformer.createColorImage(grabbedCombinedImage.getDepthImage())
-                    );
-                }
+                mergedImage.setImage(diffDepthImage(grabbedCombinedImage, backgroundDepthImage));
 
                 depthImage.setImage(depthImageTransformer.createColorImage(grabbedCombinedImage.getDepthImage()));
                 imagesPanel.repaint();
@@ -262,13 +262,11 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
             }
 
             private BufferedImage diffDepthImage(CombinedImage combinedImage, DepthImage backgroundDepthImage) {
-                final DepthImage sourceDepthImage = combinedImage.getDepthImage();
-                if (backgroundDepthImage == null) {
-                    return depthImageTransformer.createColorImage(sourceDepthImage);
+                DepthImage depth = combinedImage.getDepthImage();
+                if (backgroundDepthImage != null) {
+                    depth = depthImageFilter.filterDepthsInBackground(depth, backgroundDepthImage);
                 }
-                return depthImageTransformer.createColorImage(
-                        depthImageFilter.filterColorBasedOnBackground(combinedImage.getDepthImage(), backgroundDepthImage)
-                );
+                return depthImageTransformer.createColorImage(depth);
             }
         }, 1000, CAMERA_TASK_PERIOD_IN_MILLIS);
     }

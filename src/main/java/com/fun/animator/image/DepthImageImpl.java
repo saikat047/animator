@@ -2,8 +2,6 @@ package com.fun.animator.image;
 
 public class DepthImageImpl implements DepthImage, Cloneable {
 
-    private final int DEPTH_MASK = 0x0000FFFF;
-
     private int width;
     private int height;
     private int [][] depthValues;

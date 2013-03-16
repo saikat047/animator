@@ -5,7 +5,7 @@ public class DepthImageFilter implements ImageFilter {
     private int minDiffWithBackGroundInCM = 1;
 
     @Override
-    public DepthImage filterColorBasedOnBackground(DepthImage sourceImage, DepthImage backgroundDepthImage) {
+    public DepthImage filterDepthsInBackground(DepthImage sourceImage, DepthImage backgroundDepthImage) {
         final int minDiffInKinectUnits = minDiffWithBackGroundInCM * DepthImageTransformer.DIFF_CENTIMETER;
         final DepthImage resultDepthImage = new DepthImageImpl(sourceImage.getWidth(), sourceImage.getHeight());
         for (int x = 0; x < sourceImage.getWidth(); x++) {
@@ -14,13 +14,10 @@ public class DepthImageFilter implements ImageFilter {
                 final int backgroundDepth = backgroundDepthImage.getDepth(x, y);
 
                 int depthValue = DepthImageTransformer.DEPTH_MAX;
-                if (originalDepth < DepthImageTransformer.DEPTH_MIN ||
-                    originalDepth > DepthImageTransformer.DEPTH_MAX) {
-                    // don't do anything
-                } else if (Math.abs(backgroundDepth - originalDepth) <= minDiffInKinectUnits) {
-                    // don't do anything
-                } else {
-                    depthValue = originalDepth;
+                if (originalDepth != DepthImageTransformer.DEPTH_MAX) {
+                    if (backgroundDepth - originalDepth >= minDiffInKinectUnits) {
+                        depthValue = originalDepth;
+                    }
                 }
                 resultDepthImage.setDepth(x, y, depthValue);
             }
