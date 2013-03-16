@@ -14,7 +14,8 @@ public class DepthImageFilter implements ImageFilter {
                 final int backgroundDepth = backgroundDepthImage.getDepth(x, y);
 
                 int depthValue = DepthImageTransformer.DEPTH_MAX;
-                if (originalDepth != DepthImageTransformer.DEPTH_MAX) {
+                if (originalDepth >= DepthImageTransformer.DEPTH_MIN &&
+                    originalDepth < DepthImageTransformer.DEPTH_MAX) {
                     if (backgroundDepth - originalDepth >= minDiffInKinectUnits) {
                         depthValue = originalDepth;
                     }

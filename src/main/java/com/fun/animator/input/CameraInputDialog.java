@@ -249,10 +249,13 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
                 staticBackgroundImage.setImage(depthImageTransformer.createColorImage(backgroundStabilizerDepthImage));
 
                 final BufferedImage colorImage = grabbedCombinedImage.getColorImage();
+                DepthImage depthImageWithoutBackground = grabbedCombinedImage.getDepthImage();
+                if (backgroundDepthImage != null) {
+                    depthImageWithoutBackground = removeDepthsInBackground(grabbedCombinedImage.getDepthImage(), backgroundDepthImage);
+                    cropColorsOnlyInDepth(colorImage, depthImageWithoutBackground);
+                }
                 cameraInputImage.setImage(colorImage);
-
-                mergedImage.setImage(diffDepthImage(grabbedCombinedImage, backgroundDepthImage));
-
+                mergedImage.setImage(depthImageTransformer.createColorImage(depthImageWithoutBackground));
                 depthImage.setImage(depthImageTransformer.createColorImage(grabbedCombinedImage.getDepthImage()));
                 imagesPanel.repaint();
 
@@ -261,14 +264,25 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
                 }
             }
 
-            private BufferedImage diffDepthImage(CombinedImage combinedImage, DepthImage backgroundDepthImage) {
-                DepthImage depth = combinedImage.getDepthImage();
+            private DepthImage removeDepthsInBackground(DepthImage sourceImage, DepthImage backgroundDepthImage) {
+                DepthImage depth = sourceImage;
                 if (backgroundDepthImage != null) {
-                    depth = depthImageFilter.filterDepthsInBackground(depth, backgroundDepthImage);
+                    depth = depthImageFilter.filterDepthsInBackground(sourceImage, backgroundDepthImage);
                 }
-                return depthImageTransformer.createColorImage(depth);
+                return depth;
             }
         }, 1000, CAMERA_TASK_PERIOD_IN_MILLIS);
+    }
+
+    private void cropColorsOnlyInDepth(BufferedImage colorImage, DepthImage depthImage) {
+        for (int x = 0; x < depthImage.getWidth(); x++) {
+            for (int y = 0; y < depthImage.getHeight(); y++) {
+                final int value = depthImage.getDepth(x, y);
+                if (value == DepthImageTransformer.DEPTH_MAX) {
+                    colorImage.setRGB(x, y, Color.BLACK.getRGB());
+                }
+            }
+        }
     }
 
     private class RegionSelectionListenerImpl implements ImagePanel.RegionSelectionListener {
