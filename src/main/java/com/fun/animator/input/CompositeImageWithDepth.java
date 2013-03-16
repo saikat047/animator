@@ -3,11 +3,14 @@ package com.fun.animator.input;
 import java.awt.image.BufferedImage;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class CompositeImageWithDepth implements Image {
 
     private final List<Image> images;
     private final int numOfImages;
+    private final Lock imageListLock = new ReentrantLock();
 
     public CompositeImageWithDepth(final int numOfImages) {
         this.numOfImages = numOfImages;
@@ -15,9 +18,14 @@ public class CompositeImageWithDepth implements Image {
     }
 
     public void add(Image image) {
-        images.add(0, image);
-        if (images.size() > numOfImages) {
-            images.remove(numOfImages);
+        imageListLock.lock();
+        try {
+            images.add(0, image);
+            if (images.size() > numOfImages) {
+                images.remove(numOfImages);
+            }
+        } finally {
+            imageListLock.unlock();
         }
     }
 
@@ -67,6 +75,12 @@ public class CompositeImageWithDepth implements Image {
 
     @Override
     public Image deepCopy() {
-        throw new RuntimeException("method not implemented");
+        imageListLock.lock();
+        try {
+            return new ImageWithDepth(Images.cloneImage(images.get(0).getColorImage()),
+                                      Images.copyDepthImage(this));
+        } finally {
+            imageListLock.unlock();
+        }
     }
 }

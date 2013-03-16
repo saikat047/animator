@@ -6,9 +6,6 @@ import com.googlecode.javacv.cpp.opencv_core;
 
 public class ImageWithDepth implements Image {
 
-    // Kinect gives a maximum of 11 bit value.
-    private static final int DEPTH_MASK = 0x0000FFFF;
-
     private final BufferedImage colorImage;
     private final BufferedImage depthImage;
     private final int width;
@@ -55,16 +52,6 @@ public class ImageWithDepth implements Image {
 
     @Override
     public Image deepCopy() {
-        return new ImageWithDepth(cloneImage(colorImage), depthImage == null ? null : cloneImage(depthImage));
-    }
-
-    private BufferedImage cloneImage(BufferedImage image) {
-        BufferedImage resultImage = new BufferedImage(image.getWidth(), image.getHeight(), image.getType());
-        for (int x = 0; x < image.getWidth(); x++) {
-            for (int y = 0; y < image.getHeight(); y++) {
-                resultImage.setRGB(x, y, image.getRGB(x, y));
-            }
-        }
-        return resultImage;
+        return new ImageWithDepth(Images.cloneImage(colorImage), depthImage == null ? null : Images.cloneImage(depthImage));
     }
 }

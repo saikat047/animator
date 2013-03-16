@@ -11,7 +11,7 @@ import javax.swing.*;
 public class ImagePanel extends JPanel {
 
     private final java.util.List<RegionSelectionListener> regionSelectionListeners = new ArrayList<RegionSelectionListener>();
-    private final Color SELECTION_COLOR = Color.RED;
+    private final Color selectionColor;
 
     private BufferedImage image;
 
@@ -24,8 +24,13 @@ public class ImagePanel extends JPanel {
     private Rectangle selectedRegion;
 
     ImagePanel(String purpose, Color color) {
+        this(purpose, color, Color.RED);
+    }
+
+    ImagePanel(String purpose, Color color, Color selectionColor) {
         this.color = color;
         this.purpose = purpose;
+        this.selectionColor = selectionColor;
         Font font = getFont();
         biggerFont = new Font(font.getName(), font.getStyle() | Font.BOLD, font.getSize());
         final MouseRegionSelectionAdapter mouseListener = new MouseRegionSelectionAdapter();
@@ -64,7 +69,7 @@ public class ImagePanel extends JPanel {
         g.drawString(fpsString, getWidth() - 100, 20);
 
         if (selectedRegionStart != null) {
-            g.setColor(SELECTION_COLOR);
+            g.setColor(selectionColor);
             g.drawRect((int) selectedRegionStart.getX(), (int) selectedRegionStart.getY(),
                        (int) selectedRegion.getWidth(), (int) selectedRegion.getHeight());
         }
@@ -92,7 +97,6 @@ public class ImagePanel extends JPanel {
 
     private class MouseRegionSelectionAdapter extends MouseAdapter {
 
-        private static final int MIN_RECTANGLE_SIZE = 5;
         private boolean selecting = false;
         private Point start, stop;
 
@@ -141,10 +145,6 @@ public class ImagePanel extends JPanel {
         private void updateSelectedRegion(final Point start, final Point end) {
             final int width = (int) Math.abs(start.getX() - end.getX());
             final int height = (int) Math.abs(start.getY() - end.getY());
-            if (width < MIN_RECTANGLE_SIZE && height < MIN_RECTANGLE_SIZE) {
-                return;
-            }
-
             final int leftTopX = (int) Math.min(start.getX(), end.getX());
             final int leftTopY = (int) Math.min(start.getY(), end.getY());
             final Point leftTopPoint = new Point(leftTopX, leftTopY);

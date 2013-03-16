@@ -51,6 +51,9 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
 
     private int maxAllowedDifferenceInConsequentImagesInCM = 2;
     private CompositeImageWithDepth compositeImage;
+    private DepthImageFilter depthImageFilter = new DepthImageFilter();
+
+    private JTextArea imageRegionInfo = new JTextArea("Image Region Info", 10, 10);
 
     CameraInputDialog(JFrame parent) {
         super(parent, true);
@@ -61,7 +64,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
     public void createComponents() {
         cameraInputImage = new ImagePanel("RealTime", Color.BLUE);
         staticBackgroundImage = new ImagePanel("Background", Color.BLACK);
-        mergedImage = new ImagePanel("Difference in subsequent depth frames", Color.WHITE);
+        mergedImage = new ImagePanel("Difference in subsequent depth frames", Color.WHITE, Color.YELLOW);
         depthImage = new ImagePanel("Depthscale", Color.RED);
         startRecordingButton = new JButton("Start Recording");
         stopRecordingButton = new JButton("Stop Recording");
@@ -101,6 +104,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
         leftPanel.add(stopRecordingButton);
         leftPanel.add(toggleBackgroundButton);
         leftPanel.add(playRecordingButton);
+        leftPanel.add(imageRegionInfo);
         leftPanel.add(new JPanel());
         getContentPane().add(leftPanel, BorderLayout.LINE_START);
 
@@ -154,6 +158,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
             @Override
             public void focusLost(FocusEvent e) {
                 maxAllowedDifferenceInConsequentImagesInCM = Integer.parseInt(maxAllowedDifferenceInConsequentImageTextField.getText());
+                depthImageFilter.setMinDiffWithBackGroundInCM(maxAllowedDifferenceInConsequentImagesInCM);
             }
         });
 
@@ -174,6 +179,17 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
                 mediateRecordingButtons(recording);
             }
         });
+
+        cameraInputImage.addRegionSelectionListener(new ImagePanel.RegionSelectionListener() {
+            @Override
+            public void regionSelected(BufferedImage depthImage, Point start, Rectangle rectangle) {
+            }
+        });
+
+        cameraInputImage.addRegionSelectionListener(new RegionSelectionListenerImpl("CameraInput"));
+        mergedImage.addRegionSelectionListener(new RegionSelectionListenerImpl("MergedImage"));
+        depthImage.addRegionSelectionListener(new RegionSelectionListenerImpl("DepthImage"));
+        staticBackgroundImage.addRegionSelectionListener(new RegionSelectionListenerImpl("BackgroundImage"));
     }
 
     private void mediateRecordingButtons(boolean recording) {
@@ -219,8 +235,17 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
                 staticBackgroundImage.setImage(backgroundImage == null ? null : depthImageTransformer.convertDepthImage(backgroundImage));
 
                 final Image grabbedImage = camera.getGrabbedImage();
-                cameraInputImage.setImage(grabbedImage.getColorImage());
-                mergedImage.setImage(diffDepthImage(grabbedImage, compositeImage.isEmpty() ? null : compositeImage));
+                BufferedImage colorImage = grabbedImage.getColorImage();
+                if (backgroundImage != null) {
+                    colorImage = depthImageFilter.filterImage(grabbedImage, backgroundImage, false);
+                }
+                cameraInputImage.setImage(colorImage);
+
+                if (backgroundImage != null) {
+                    mergedImage.setImage(diffDepthImage(grabbedImage, backgroundImage));
+                } else {
+                    mergedImage.setImage(diffDepthImage(grabbedImage, compositeImage.isEmpty() ? null : compositeImage));
+                }
 
                 final Image grabbedImageCopy = grabbedImage.deepCopy();
                 compositeImage.add(grabbedImageCopy);
@@ -255,6 +280,38 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
                 return diffImage;
             }
         }, 1000, CAMERA_TASK_PERIOD_IN_MILLIS);
+    }
+
+    private class RegionSelectionListenerImpl implements ImagePanel.RegionSelectionListener {
+        private final String regionName;
+
+        public RegionSelectionListenerImpl(String regionName) {
+            this.regionName = regionName;
+        }
+
+        @Override
+        public void regionSelected(BufferedImage depthImage, Point start, Rectangle rectangle) {
+            StringBuilder infoBuilder = new StringBuilder();
+            infoBuilder.append("ImagePanel : " + regionName).append("\n");
+            int minValue = Integer.MAX_VALUE;
+            int maxValue = 0;
+            for (int x = (int) start.getX(); x <= start.getX() + rectangle.getWidth(); x++) {
+                for (int y = (int) start.getY(); y <= start.getY() + rectangle.getHeight(); y++) {
+                    final int value = depthImage.getRGB(x, y) & Image.DEPTH_MASK;
+                    if (value < minValue) {
+                        minValue = value;
+                    }
+                    if (value > maxValue) {
+                        maxValue = value;
+                    }
+                }
+            }
+            infoBuilder.append("Min : 0x" + Integer.toHexString(minValue)).append("\n");
+            infoBuilder.append("Max : 0x" + Integer.toHexString(maxValue)).append("\n");
+            infoBuilder.append("Selection (x, y) : (" + start.getX() + ", " + start.getY() + ")").append("\n");
+            infoBuilder.append("Selection (width, height) : (" + rectangle.getWidth() + ", " + rectangle.getHeight() + ")").append("\n");
+            imageRegionInfo.setText(infoBuilder.toString());
+        }
     }
 
     private void shutdownCamera(Camera camera) {
