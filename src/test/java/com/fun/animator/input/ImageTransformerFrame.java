@@ -13,6 +13,7 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 
 import com.fun.animator.LifeCycle;
+import com.fun.animator.image.CombinedImage;
 import com.fun.animator.image.DefaultDepthImageTransformers;
 import com.fun.animator.image.ImagePanel;
 
@@ -20,13 +21,13 @@ public class ImageTransformerFrame extends JFrame implements LifeCycle {
 
     private ImagePanel depthImagePanel;
     private ImagePanel transformedImagePanel;
-    private com.fun.animator.image.Image image;
+    private CombinedImage combinedImage;
     private BufferedImage transformedImage;
     private java.util.Timer taskRunner = new Timer();
 
-    ImageTransformerFrame(com.fun.animator.image.Image image) {
+    ImageTransformerFrame(CombinedImage combinedImage) {
         super("ImageTransformationTest");
-        this.image = image;
+        this.combinedImage = combinedImage;
     }
 
     @Override
@@ -46,14 +47,15 @@ public class ImageTransformerFrame extends JFrame implements LifeCycle {
         getContentPane().add(imagesPanel, BorderLayout.CENTER);
 
         JLabel infoLabel = new JLabel();
-        infoLabel.setText(getImageInfo(image));
+        infoLabel.setText(getImageInfo(combinedImage));
         getContentPane().add(wrapComponent(infoLabel), BorderLayout.LINE_END);
     }
 
-    private String getImageInfo(com.fun.animator.image.Image image) {
+    private String getImageInfo(CombinedImage combinedImage) {
+        final BufferedImage colorImage = combinedImage.getColorImage();
         StringBuilder imageInfoBuilder = new StringBuilder("<html>");
-        imageInfoBuilder.append("Width : ").append(image.getWidth()).append("<br>")
-                        .append("Height : ").append(image.getHeight()).append("<br>");
+        imageInfoBuilder.append("Width : ").append(colorImage.getWidth()).append("<br>")
+                        .append("Height : ").append(colorImage.getHeight()).append("<br>");
         imageInfoBuilder.append("</html>");
         return imageInfoBuilder.toString();
     }
@@ -72,8 +74,8 @@ public class ImageTransformerFrame extends JFrame implements LifeCycle {
 
     @Override
     public void initialize() {
-        transformedImage = new DefaultDepthImageTransformers().convertDepthImage(image);
-        depthImagePanel.setImage(image.getDepthImage());
+        depthImagePanel.setImage(combinedImage.getColorImage());
+        transformedImage = new DefaultDepthImageTransformers().createColorImage(combinedImage.getDepthImage());
         transformedImagePanel.setImage(transformedImage);
         taskRunner.scheduleAtFixedRate(new TimerTask() {
             @Override

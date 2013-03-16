@@ -3,29 +3,27 @@ package com.fun.animator.image;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 
-import com.fun.animator.image.DepthImageTransformer;
-import com.fun.animator.image.ImageFilter;
-
 public class DepthImageFilter implements ImageFilter {
 
     private int minDiffWithBackGroundInCM = 1;
 
     @Override
-    public BufferedImage filterImage(com.fun.animator.image.Image originalImage, com.fun.animator.image.Image backgroundDepthImage, boolean depthImage) {
+    public BufferedImage filterColorBasedOnBackground(CombinedImage sourceImage, DepthImage backgroundDepthImage) {
         final int minDiffInKinectUnits = minDiffWithBackGroundInCM * DepthImageTransformer.DIFF_CENTIMETER;
-        final BufferedImage resultImage = new BufferedImage(originalImage.getWidth(),
-                                                      originalImage.getHeight(),
-                                                      originalImage.getColorImageType());
-        final BufferedImage originalColorImage = originalImage.getColorImage();
-        for (int x = 0; x < originalImage.getWidth(); x++) {
-            for (int y = 0; y < originalImage.getHeight(); y++) {
-                final int originalDepth = originalImage.getDepth(x, y) & com.fun.animator.image.Image.DEPTH_MASK;
-                final int backgroundDepth = backgroundDepthImage.getDepth(x, y) & com.fun.animator.image.Image.DEPTH_MASK;
+        final BufferedImage sourceColorImage = sourceImage.getColorImage();
+        final DepthImage sourceDepthImage = sourceImage.getDepthImage();
+        final BufferedImage resultImage = new BufferedImage(sourceColorImage.getWidth(),
+                                                            sourceColorImage.getHeight(),
+                                                            sourceColorImage.getType());
+        for (int x = 0; x < sourceColorImage.getWidth(); x++) {
+            for (int y = 0; y < sourceColorImage.getHeight(); y++) {
+                final int originalDepth = sourceDepthImage.getDepth(x, y);
+                final int backgroundDepth = backgroundDepthImage.getDepth(x, y);
                 if (originalDepth == DepthImageTransformer.DEPTH_MAX) {
                     resultImage.setRGB(x, y, Color.BLACK.getRGB());
                 } else if ((originalDepth > DepthImageTransformer.DEPTH_MIN && originalDepth < DepthImageTransformer.DEPTH_MAX)
                            && backgroundDepth - originalDepth > minDiffInKinectUnits) {
-                    resultImage.setRGB(x, y, originalColorImage.getRGB(x, y));
+                    resultImage.setRGB(x, y, sourceColorImage.getRGB(x, y));
                 } else {
                     resultImage.setRGB(x, y, Color.BLACK.getRGB());
                 }

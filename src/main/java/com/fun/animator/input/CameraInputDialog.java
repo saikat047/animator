@@ -20,9 +20,11 @@ import javax.swing.event.ChangeListener;
 
 import com.fun.animator.AnimatorInitializer;
 import com.fun.animator.LifeCycle;
-import com.fun.animator.image.CompositeImageWithDepth;
+import com.fun.animator.image.CombinedImage;
+import com.fun.animator.image.CompositeDepthImage;
 import com.fun.animator.image.DefaultDepthImageTransformers;
 import com.fun.animator.image.DefaultImageSequenceRecorder;
+import com.fun.animator.image.DepthImage;
 import com.fun.animator.image.DepthImageFilter;
 import com.fun.animator.image.DepthImageTransformer;
 import com.fun.animator.image.ImagePanel;
@@ -53,14 +55,14 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
     private Camera camera;
     private java.util.Timer cameraRunner;
 
-    private com.fun.animator.image.Image backgroundImage;
+    private DepthImage backgroundDepthImage;
     private long frameDelayInMillis = 20L;
 
     private int maxAllowedDifferenceInConsequentImagesInCM = 2;
-    private CompositeImageWithDepth compositeImage;
+    private CompositeDepthImage compositeDepthImage;
     private DepthImageFilter depthImageFilter = new DepthImageFilter();
 
-    private JTextArea imageRegionInfo = new JTextArea("Image Region Info", 10, 10);
+    private JTextArea imageRegionInfo = new JTextArea("CombinedImage Region Info", 10, 10);
 
     CameraInputDialog(JFrame parent) {
         super(parent, true);
@@ -81,7 +83,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
         delayBetweenTwoFramesField.setColumns(5);
         maxAllowedDifferenceInConsequentImageTextField = new JTextField(Long.toString(maxAllowedDifferenceInConsequentImagesInCM));
         maxAllowedDifferenceInConsequentImageTextField.setColumns(6);
-        compositeImage = new CompositeImageWithDepth(3);
+        compositeDepthImage = new CompositeDepthImage(3);
         camera = new OpenKinectCamera();
         cameraRunner = new Timer("Animator", true);
     }
@@ -144,10 +146,10 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
             @Override
             public void stateChanged(ChangeEvent event) {
                 if (!toggleBackgroundButton.isSelected()) {
-                    backgroundImage = null;
+                    backgroundDepthImage = null;
                     return;
                 }
-                backgroundImage = compositeImage.deepCopy();
+                backgroundDepthImage = compositeDepthImage.createCopy();
             }
         });
 
@@ -239,52 +241,39 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
                     return;
                 }
 
-                staticBackgroundImage.setImage(backgroundImage == null ? null : depthImageTransformer.convertDepthImage(backgroundImage));
+                staticBackgroundImage.setImage(
+                        backgroundDepthImage == null ? null : depthImageTransformer.createColorImage(backgroundDepthImage));
 
-                final com.fun.animator.image.Image grabbedImage = camera.getGrabbedImage();
-                BufferedImage colorImage = grabbedImage.getColorImage();
-                if (backgroundImage != null) {
-                    colorImage = depthImageFilter.filterImage(grabbedImage, backgroundImage, false);
+                final CombinedImage grabbedCombinedImage = camera.getGrabbedImage();
+                BufferedImage colorImage = grabbedCombinedImage.getColorImage();
+                if (backgroundDepthImage != null) {
+                    colorImage = depthImageFilter.filterColorBasedOnBackground(grabbedCombinedImage, backgroundDepthImage);
                 }
                 cameraInputImage.setImage(colorImage);
 
-                if (backgroundImage != null) {
-                    mergedImage.setImage(diffDepthImage(grabbedImage, backgroundImage));
+                if (backgroundDepthImage != null) {
+                    mergedImage.setImage(diffDepthImage(grabbedCombinedImage, backgroundDepthImage));
                 } else {
-                    mergedImage.setImage(diffDepthImage(grabbedImage, compositeImage.isEmpty() ? null : compositeImage));
+                    mergedImage.setImage(diffDepthImage(grabbedCombinedImage, compositeDepthImage.isEmpty() ? null : compositeDepthImage));
                 }
 
-                final com.fun.animator.image.Image grabbedImageCopy = grabbedImage.deepCopy();
-                compositeImage.add(grabbedImageCopy);
-                depthImage.setImage(depthImageTransformer.convertDepthImage(compositeImage));
+                final DepthImage grabbedDepthImageCopy = grabbedCombinedImage.getDepthImage().createCopy();
+                compositeDepthImage.add(grabbedDepthImageCopy);
+                depthImage.setImage(depthImageTransformer.createColorImage(grabbedDepthImageCopy));
 
                 imagesPanel.repaint();
 
                 if (recording) {
-                    imageSequenceRecorder.add(grabbedImage);
+                    imageSequenceRecorder.add(grabbedCombinedImage);
                 }
             }
 
-            private BufferedImage diffDepthImage(com.fun.animator.image.Image image, com.fun.animator.image.Image previousImage) {
-                if (previousImage == null) {
-                    return image.getDepthImage();
+            private BufferedImage diffDepthImage(CombinedImage combinedImage, DepthImage backgroundDepthImage) {
+                final DepthImage sourceDepthImage = combinedImage.getDepthImage();
+                if (backgroundDepthImage == null) {
+                    return depthImageTransformer.createColorImage(sourceDepthImage);
                 }
-                final BufferedImage diffImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_RGB);
-                for (int x = 0; x < image.getWidth(); x++) {
-                    for (int y = 0; y < image.getHeight(); y++) {
-                        int goodRGB = image.getDepth(x, y);
-                        int badRGB = previousImage.getDepth(x, y);
-                        int difference = Math.abs(goodRGB - badRGB);
-                        if (difference <= maxAllowedDifferenceInConsequentImagesInCM * DepthImageTransformer.DIFF_CENTIMETER) {
-                            diffImage.setRGB(x, y, Color.BLACK.getRGB());
-                        } else {
-                            // some difference found
-                            diffImage.setRGB(x, y, Color.RED.getRGB());
-                        }
-
-                    }
-                }
-                return diffImage;
+                return depthImageFilter.filterColorBasedOnBackground(combinedImage, backgroundDepthImage);
             }
         }, 1000, CAMERA_TASK_PERIOD_IN_MILLIS);
     }
@@ -304,7 +293,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
             int maxValue = 0;
             for (int x = (int) start.getX(); x <= start.getX() + rectangle.getWidth(); x++) {
                 for (int y = (int) start.getY(); y <= start.getY() + rectangle.getHeight(); y++) {
-                    final int value = depthImage.getRGB(x, y) & com.fun.animator.image.Image.DEPTH_MASK;
+                    final int value = depthImage.getRGB(x, y);
                     if (value < minValue) {
                         minValue = value;
                     }

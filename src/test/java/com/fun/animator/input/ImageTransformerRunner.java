@@ -7,7 +7,9 @@ import java.io.InputStream;
 import javax.imageio.ImageIO;
 
 import com.fun.animator.AnimatorInitializer;
-import com.fun.animator.image.ImageWithDepth;
+import com.fun.animator.image.CombinedImageImpl;
+import com.fun.animator.image.DepthImage;
+import com.fun.animator.image.DepthImageImpl;
 
 public class ImageTransformerRunner {
     public static void main(String [] argv) throws Exception {
@@ -23,7 +25,7 @@ public class ImageTransformerRunner {
     }
 
     private static void createFrame(String frameName, BufferedImage image) throws IOException {
-        ImageTransformerFrame frame = new ImageTransformerFrame(new ImageWithDepth(image, image));
+        ImageTransformerFrame frame = new ImageTransformerFrame(new CombinedImageImpl(image, TestUtils.createDepthImage(image)));
         frame.setTitle(frameName);
         AnimatorInitializer.init(frame);
         frame.pack();

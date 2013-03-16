@@ -2,8 +2,6 @@ package com.fun.animator.image;
 
 import java.awt.image.BufferedImage;
 
-import com.fun.animator.image.Image;
-
 public interface DepthImageTransformer {
 
     static final int DIFF_CENTIMETER = 0x80;
@@ -12,5 +10,5 @@ public interface DepthImageTransformer {
     // maximum depth: 511 cm
     static final int DEPTH_MAX = 0x0000FFFF;
 
-    BufferedImage convertDepthImage(Image depthImage);
+    BufferedImage createColorImage(DepthImage depthImage);
 }

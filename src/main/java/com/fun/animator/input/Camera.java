@@ -1,7 +1,7 @@
 package com.fun.animator.input;
 
-import com.fun.animator.image.Image;
-import com.fun.animator.image.ImageWithDepth;
+import com.fun.animator.image.CombinedImage;
+import com.fun.animator.image.CombinedImageImpl;
 import com.googlecode.javacv.FrameGrabber;
 import com.googlecode.javacv.cpp.opencv_core;
 
@@ -54,18 +54,18 @@ public class Camera {
         }
     }
 
-    public final Image getGrabbedImage() {
+    public final CombinedImage getGrabbedImage() {
         return getGrabbedImage(grabber.getGamma());
     }
 
-    public Image getGrabbedImage(double gamma) {
+    public CombinedImage getGrabbedImage(double gamma) {
         final opencv_core.IplImage grabbedImage;
         try {
             grabbedImage = grabber.grab();
         } catch (FrameGrabber.Exception e) {
             throw new RuntimeException("unable to grab image", e);
         }
-        return new ImageWithDepth(grabbedImage, gamma, null);
+        return new CombinedImageImpl(grabbedImage, null);
     }
 
     public void stop() {

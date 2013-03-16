@@ -8,6 +8,7 @@
     </JAVADOC>
     <SOURCES>
       <root url="jar://$MAVEN_REPOSITORY$/com/googlecode/javacv/javacv/0.4/javacv-0.4-sources.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/com/googlecode/javacv/javacv/0.4/javacv-0.4-src.zip!/javacv/src/main/java" />
     </SOURCES>
   </library>
 </component>

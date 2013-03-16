@@ -15,9 +15,9 @@ public class ImageTransformerTest {
         final BufferedImage goodImage = ImageIO.read(goodStream);
         InputStream badStream = ImageTransformerTest.class.getResourceAsStream("/bad-example.png");
         final BufferedImage badImage = ImageIO.read(badStream);
-        System.out.println("Good Image");
+        System.out.println("Good CombinedImage");
         dumpImageInfo(goodImage);
-        System.out.println("Bad Image");
+        System.out.println("Bad CombinedImage");
         dumpImageInfo(badImage);
         MinMaxInfo goodMMI = new MinMaxInfo();
         MinMaxInfo badMMI = new MinMaxInfo();
@@ -96,7 +96,7 @@ public class ImageTransformerTest {
 
     private static void dumpImageInfo(BufferedImage image) {
         StringBuilder imageInfoBuilder = new StringBuilder();
-        imageInfoBuilder.append("Image type: ").append(image.getType()).append("\n")
+        imageInfoBuilder.append("CombinedImage type: ").append(image.getType()).append("\n")
                 .append("Width : ").append(image.getWidth()).append("\n")
                 .append("Height : ").append(image.getHeight()).append("\n");
         if (image.getPropertyNames() != null) {

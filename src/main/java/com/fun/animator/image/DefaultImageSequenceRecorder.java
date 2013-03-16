@@ -16,7 +16,7 @@ public class DefaultImageSequenceRecorder implements ImageSequenceRecorder, Runn
     private final File saveDirectory;
 
     private DepthImageTransformer depthImageTransformer = new DefaultDepthImageTransformers();
-    private BlockingQueue<Image> imageQueue;
+    private BlockingQueue<CombinedImage> combinedImageQueue;
     private Thread runnerThread;
     private boolean stopRequested = false;
 
@@ -24,7 +24,7 @@ public class DefaultImageSequenceRecorder implements ImageSequenceRecorder, Runn
 
     public DefaultImageSequenceRecorder(int maxNumOfImages, File saveDirectory) {
         this.saveDirectory = saveDirectory;
-        imageQueue = new LinkedBlockingDeque<Image>(maxNumOfImages);
+        combinedImageQueue = new LinkedBlockingDeque<CombinedImage>(maxNumOfImages);
     }
 
     @Override
@@ -37,22 +37,22 @@ public class DefaultImageSequenceRecorder implements ImageSequenceRecorder, Runn
     public void run() {
         while (!stopRequested) {
             try {
-                Image image = imageQueue.take();
-                writeImageToFile(image, imageToDiskNumber.incrementAndGet());
+                CombinedImage combinedImage = combinedImageQueue.take();
+                writeImageToFile(combinedImage, imageToDiskNumber.incrementAndGet());
             } catch (InterruptedException e) {
             }
         }
     }
 
     @Override
-    public void add(Image image) {
-        imageQueue.offer(image);
+    public void add(CombinedImage combinedImage) {
+        combinedImageQueue.offer(combinedImage);
     }
 
-    private void writeImageToFile(Image image, int imageNumber) {
-        writeImageToFile(image.getDepthImage(),
+    private void writeImageToFile(CombinedImage combinedImage, int imageNumber) {
+        writeImageToFile(combinedImage.getColorImage(),
                          new File(saveDirectory, String.format("%d.%s.png", imageNumber, BACKGROUND_DEPTH_IMAGE_FILE_NAME)));
-        writeImageToFile(depthImageTransformer.convertDepthImage(image),
+        writeImageToFile(depthImageTransformer.createColorImage(combinedImage.getDepthImage()),
                          new File(saveDirectory, String.format("%d.%s.png", imageNumber, BACKGROUND_DEPTH_CONVERTED_IMAGE_FILE_NAME)));
     }
 
@@ -70,7 +70,7 @@ public class DefaultImageSequenceRecorder implements ImageSequenceRecorder, Runn
     public void stopRecording() {
         stopRequested = true;
         try {
-            imageQueue.clear();
+            combinedImageQueue.clear();
             runnerThread.join();
         } catch (InterruptedException e) {
         }

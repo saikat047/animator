@@ -1,7 +1,7 @@
 package com.fun.animator.input;
 
-import com.fun.animator.image.Image;
-import com.fun.animator.image.ImageWithDepth;
+import com.fun.animator.image.CombinedImage;
+import com.fun.animator.image.CombinedImageImpl;
 import com.googlecode.javacv.FrameGrabber;
 import com.googlecode.javacv.OpenKinectFrameGrabber;
 import com.googlecode.javacv.cpp.freenect;
@@ -20,11 +20,11 @@ public class OpenKinectCamera extends Camera {
     }
 
     @Override
-    public Image getGrabbedImage(double gamma) {
+    public CombinedImage getGrabbedImage(double gamma) {
         try {
             opencv_core.IplImage depthImage = openKinectFrameGrabber.grabDepth();
             opencv_core.IplImage colorImage = openKinectFrameGrabber.grabVideo();
-            return new ImageWithDepth(colorImage, gamma, depthImage);
+            return new CombinedImageImpl(colorImage, depthImage);
         } catch (FrameGrabber.Exception ex) {
             throw new RuntimeException(ex);
         }
