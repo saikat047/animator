@@ -13,16 +13,17 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 
 import com.fun.animator.LifeCycle;
+import com.fun.animator.image.ImagePanel;
 
 public class ImageTransformerFrame extends JFrame implements LifeCycle {
 
     private ImagePanel depthImagePanel;
     private ImagePanel transformedImagePanel;
-    private Image image;
+    private com.fun.animator.image.Image image;
     private BufferedImage transformedImage;
     private java.util.Timer taskRunner = new Timer();
 
-    ImageTransformerFrame(Image image) {
+    ImageTransformerFrame(com.fun.animator.image.Image image) {
         super("ImageTransformationTest");
         this.image = image;
     }
@@ -48,7 +49,7 @@ public class ImageTransformerFrame extends JFrame implements LifeCycle {
         getContentPane().add(wrapComponent(infoLabel), BorderLayout.LINE_END);
     }
 
-    private String getImageInfo(Image image) {
+    private String getImageInfo(com.fun.animator.image.Image image) {
         StringBuilder imageInfoBuilder = new StringBuilder("<html>");
         imageInfoBuilder.append("Width : ").append(image.getWidth()).append("<br>")
                         .append("Height : ").append(image.getHeight()).append("<br>");

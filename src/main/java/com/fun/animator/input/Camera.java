@@ -1,5 +1,7 @@
 package com.fun.animator.input;
 
+import com.fun.animator.image.Image;
+import com.fun.animator.image.ImageWithDepth;
 import com.googlecode.javacv.FrameGrabber;
 import com.googlecode.javacv.cpp.opencv_core;
 

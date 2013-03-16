@@ -1,4 +1,4 @@
-package com.fun.animator.input;
+package com.fun.animator.image;
 
 import java.awt.*;
 import java.awt.event.MouseAdapter;
@@ -7,6 +7,8 @@ import java.awt.image.BufferedImage;
 import java.util.*;
 
 import javax.swing.*;
+
+import com.fun.animator.input.FPSCalculator;
 
 public class ImagePanel extends JPanel {
 
@@ -23,11 +25,11 @@ public class ImagePanel extends JPanel {
     private Point selectedRegionStart;
     private Rectangle selectedRegion;
 
-    ImagePanel(String purpose, Color color) {
+    public ImagePanel(String purpose, Color color) {
         this(purpose, color, Color.RED);
     }
 
-    ImagePanel(String purpose, Color color, Color selectionColor) {
+    public ImagePanel(String purpose, Color color, Color selectionColor) {
         this.color = color;
         this.purpose = purpose;
         this.selectionColor = selectionColor;

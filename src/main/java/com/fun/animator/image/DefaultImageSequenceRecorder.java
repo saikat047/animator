@@ -1,14 +1,18 @@
-package com.fun.animator.input;
+package com.fun.animator.image;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.util.NoSuchElementException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.imageio.ImageIO;
+
+import com.fun.animator.image.DepthImageTransformer;
+import com.fun.animator.image.Image;
+import com.fun.animator.image.ImageSequenceRecorder;
+import com.fun.animator.input.DefaultDepthImageTransformers;
 
 public class DefaultImageSequenceRecorder implements ImageSequenceRecorder, Runnable {
 
@@ -23,7 +27,7 @@ public class DefaultImageSequenceRecorder implements ImageSequenceRecorder, Runn
 
     private final AtomicInteger imageToDiskNumber = new AtomicInteger(0);
 
-    DefaultImageSequenceRecorder(int maxNumOfImages, File saveDirectory) {
+    public DefaultImageSequenceRecorder(int maxNumOfImages, File saveDirectory) {
         this.saveDirectory = saveDirectory;
         imageQueue = new LinkedBlockingDeque<Image>(maxNumOfImages);
     }

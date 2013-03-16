@@ -6,6 +6,11 @@ import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.fun.animator.image.DepthImageTransformer;
+import com.fun.animator.image.Image;
+import com.fun.animator.image.ImageWithDepth;
+import com.fun.animator.image.Images;
+
 public class CompositeImageWithDepth implements Image {
 
     private final List<Image> images;

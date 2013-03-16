@@ -7,6 +7,8 @@ import java.io.InputStream;
 import javax.imageio.ImageIO;
 import javax.swing.*;
 
+import com.fun.animator.image.ImagePanel;
+
 public class ImageTransformerTest {
     public static void main(String [] argv) throws Exception {
         InputStream goodStream = ImageTransformerTest.class.getResourceAsStream("/good-example.png");

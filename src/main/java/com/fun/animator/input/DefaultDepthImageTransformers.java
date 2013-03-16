@@ -3,12 +3,14 @@ package com.fun.animator.input;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 
+import com.fun.animator.image.DepthImageTransformer;
+
 public class DefaultDepthImageTransformers implements DepthImageTransformer {
 
     private static final double DEPTH_MAX_FOR_COLOR = DEPTH_MIN + 0.95 * (DEPTH_MAX - DEPTH_MIN);
 
     @Override
-    public BufferedImage convertDepthImage(Image image) {
+    public BufferedImage convertDepthImage(com.fun.animator.image.Image image) {
         // WARNING: THE ADDITION OF THE TWO INDIVIDUAL COLOR COMPONENTS BELOW MUST NEVER
         //          BE HIGHER THAN 255 WHICH IS THE MAXIMUM VALUE ALLOWED ON A SINGLE
         //          COLOR COMPONENT.

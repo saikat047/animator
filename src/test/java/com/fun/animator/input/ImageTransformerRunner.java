@@ -7,6 +7,7 @@ import java.io.InputStream;
 import javax.imageio.ImageIO;
 
 import com.fun.animator.AnimatorInitializer;
+import com.fun.animator.image.ImageWithDepth;
 
 public class ImageTransformerRunner {
     public static void main(String [] argv) throws Exception {

@@ -20,6 +20,11 @@ import javax.swing.event.ChangeListener;
 
 import com.fun.animator.AnimatorInitializer;
 import com.fun.animator.LifeCycle;
+import com.fun.animator.image.DefaultImageSequenceRecorder;
+import com.fun.animator.image.DepthImageFilter;
+import com.fun.animator.image.DepthImageTransformer;
+import com.fun.animator.image.ImagePanel;
+import com.fun.animator.image.ImageSequenceRecorder;
 
 public class CameraInputDialog extends JDialog implements LifeCycle {
 
@@ -46,7 +51,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
     private Camera camera;
     private java.util.Timer cameraRunner;
 
-    private Image backgroundImage;
+    private com.fun.animator.image.Image backgroundImage;
     private long frameDelayInMillis = 20L;
 
     private int maxAllowedDifferenceInConsequentImagesInCM = 2;
@@ -234,7 +239,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
 
                 staticBackgroundImage.setImage(backgroundImage == null ? null : depthImageTransformer.convertDepthImage(backgroundImage));
 
-                final Image grabbedImage = camera.getGrabbedImage();
+                final com.fun.animator.image.Image grabbedImage = camera.getGrabbedImage();
                 BufferedImage colorImage = grabbedImage.getColorImage();
                 if (backgroundImage != null) {
                     colorImage = depthImageFilter.filterImage(grabbedImage, backgroundImage, false);
@@ -247,7 +252,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
                     mergedImage.setImage(diffDepthImage(grabbedImage, compositeImage.isEmpty() ? null : compositeImage));
                 }
 
-                final Image grabbedImageCopy = grabbedImage.deepCopy();
+                final com.fun.animator.image.Image grabbedImageCopy = grabbedImage.deepCopy();
                 compositeImage.add(grabbedImageCopy);
                 depthImage.setImage(depthImageTransformer.convertDepthImage(compositeImage));
 
@@ -258,7 +263,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
                 }
             }
 
-            private BufferedImage diffDepthImage(Image image, Image previousImage) {
+            private BufferedImage diffDepthImage(com.fun.animator.image.Image image, com.fun.animator.image.Image previousImage) {
                 if (previousImage == null) {
                     return image.getDepthImage();
                 }
@@ -297,7 +302,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
             int maxValue = 0;
             for (int x = (int) start.getX(); x <= start.getX() + rectangle.getWidth(); x++) {
                 for (int y = (int) start.getY(); y <= start.getY() + rectangle.getHeight(); y++) {
-                    final int value = depthImage.getRGB(x, y) & Image.DEPTH_MASK;
+                    final int value = depthImage.getRGB(x, y) & com.fun.animator.image.Image.DEPTH_MASK;
                     if (value < minValue) {
                         minValue = value;
                     }

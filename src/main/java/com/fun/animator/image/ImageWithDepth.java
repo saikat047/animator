@@ -1,4 +1,4 @@
-package com.fun.animator.input;
+package com.fun.animator.image;
 
 import java.awt.image.BufferedImage;
 
@@ -11,11 +11,11 @@ public class ImageWithDepth implements Image {
     private final int width;
     private final int height;
 
-    ImageWithDepth(opencv_core.IplImage colorImage, double gamma, opencv_core.IplImage depthImage) {
+    public ImageWithDepth(opencv_core.IplImage colorImage, double gamma, opencv_core.IplImage depthImage) {
         this(colorImage.getBufferedImage(gamma), depthImage == null ? null : depthImage.getBufferedImage());
     }
 
-    protected ImageWithDepth(BufferedImage colorImage, BufferedImage depthImage) {
+    public ImageWithDepth(BufferedImage colorImage, BufferedImage depthImage) {
         this.colorImage = colorImage;
         this.depthImage = depthImage;
         width = colorImage.getWidth();
