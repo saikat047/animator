@@ -32,8 +32,18 @@ public class ImageTransformerFrame extends JFrame implements LifeCycle {
 
     @Override
     public void createComponents() {
-        depthImagePanel = new ImagePanel("DepthImage", Color.GREEN);
-        transformedImagePanel = new ImagePanel("TransformedImage", Color.GREEN);
+        depthImagePanel = new ImagePanel("DepthImage", Color.GREEN) {
+            @Override
+            protected BufferedImage getColorImage() {
+                return combinedImage.getColorImage();
+            }
+        };
+        transformedImagePanel = new ImagePanel("TransformedImage", Color.GREEN) {
+            @Override
+            protected BufferedImage getColorImage() {
+                return new DefaultDepthImageTransformers().createColorImage(combinedImage.getDepthImage());
+            }
+        };
     }
 
     @Override
@@ -74,9 +84,6 @@ public class ImageTransformerFrame extends JFrame implements LifeCycle {
 
     @Override
     public void initialize() {
-        depthImagePanel.setImage(combinedImage.getColorImage());
-        transformedImage = new DefaultDepthImageTransformers().createColorImage(combinedImage.getDepthImage());
-        transformedImagePanel.setImage(transformedImage);
         taskRunner.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {

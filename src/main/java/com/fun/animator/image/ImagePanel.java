@@ -8,14 +8,15 @@ import java.util.*;
 
 import javax.swing.*;
 
+import com.fun.animator.event.FrameGrabbedListener;
 import com.fun.animator.input.FPSCalculator;
 
-public class ImagePanel extends JPanel {
+public class ImagePanel extends JPanel implements FrameGrabbedListener {
 
     private final java.util.List<RegionSelectionListener> regionSelectionListeners = new ArrayList<RegionSelectionListener>();
     private final Color selectionColor;
 
-    private BufferedImage image;
+    protected CombinedImage combinedImage;
 
     private Color color;
     private String purpose;
@@ -46,16 +47,29 @@ public class ImagePanel extends JPanel {
     }
 
     private void fireRegionSelectedEvent() {
-        final BufferedImage depthImage = image;
+        final BufferedImage depthImage = getColorImage();
         for (RegionSelectionListener regionSelectionListener : regionSelectionListeners) {
             regionSelectionListener.regionSelected(depthImage, selectedRegionStart, selectedRegion);
         }
     }
 
     @Override
+    public void inputFrameGrabbed(CombinedImage combinedImage) {
+        this.combinedImage = combinedImage;
+    }
+
+    protected BufferedImage getColorImage() {
+        if (combinedImage == null) {
+            return null;
+        }
+        return combinedImage.getColorImage();
+    }
+
+    @Override
     public void paint(Graphics g) {
         g.setColor(Color.BLACK);
         g.clearRect(0, 0, getWidth(), getHeight());
+        BufferedImage image = getColorImage();
         if (image != null) {
             g.drawImage(image, 0, 0, getWidth(), getHeight(), null);
         }
@@ -75,10 +89,6 @@ public class ImagePanel extends JPanel {
             g.drawRect((int) selectedRegionStart.getX(), (int) selectedRegionStart.getY(),
                        (int) selectedRegion.getWidth(), (int) selectedRegion.getHeight());
         }
-    }
-
-    public void setImage(BufferedImage image) {
-        this.image = image;
     }
 
     public void addRegionSelectionListener(RegionSelectionListener listener) {

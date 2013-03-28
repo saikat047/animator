@@ -8,27 +8,24 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.util.*;
 import java.util.Timer;
+import java.util.TimerTask;
 
 import javax.swing.*;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 
 import com.fun.animator.AnimatorInitializer;
 import com.fun.animator.LifeCycle;
+import com.fun.animator.event.InputImageEventBus;
+import com.fun.animator.image.BackgroundImagePanel;
 import com.fun.animator.image.CombinedImage;
-import com.fun.animator.image.DefaultDepthImageTransformers;
 import com.fun.animator.image.DefaultImageSequenceRecorder;
-import com.fun.animator.image.DepthImage;
 import com.fun.animator.image.DepthImageFilter;
-import com.fun.animator.image.DepthImageTransformer;
+import com.fun.animator.image.DepthImagePanel;
 import com.fun.animator.image.ImagePanel;
 import com.fun.animator.image.ImageSequenceRecorder;
-import com.fun.animator.image.StabilizedDepthImage;
 
 public class CameraInputDialog extends JDialog implements LifeCycle {
 
@@ -37,9 +34,8 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
     private static final File SAVE_DIRECTORY = new File(USER_HOME_DIRECTORY, "kinect-animator");
 
     private ImagePanel cameraInputImage;
-    private ImagePanel staticBackgroundImage;
-    private ImagePanel mergedImage;
-    private ImagePanel depthImage;
+    private BackgroundImagePanel backgroundImagePanel;
+    private DepthImagePanel depthImage;
     private JPanel imagesPanel;
     private JButton startRecordingButton;
     private JButton stopRecordingButton;
@@ -48,15 +44,13 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
     private JTextField maxAllowedDifferenceInConsequentImageTextField;
     private JToggleButton toggleBackgroundButton;
 
-    private DepthImageTransformer depthImageTransformer = new DefaultDepthImageTransformers();
+    private InputImageEventBus eventBus;
     private ImageSequenceRecorder imageSequenceRecorder;
     private boolean recording = false;
 
     private Camera camera;
     private java.util.Timer cameraRunner;
 
-    private DepthImage backgroundDepthImage;
-    private StabilizedDepthImage backgroundStabilizerDepthImage;
     private long frameDelayInMillis = 20L;
 
     private int minDiffFromBackgroundInCM = 20;
@@ -72,9 +66,8 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
     @Override
     public void createComponents() {
         cameraInputImage = new ImagePanel("RealTime", Color.BLUE);
-        staticBackgroundImage = new ImagePanel("Background", Color.BLACK);
-        mergedImage = new ImagePanel("Difference with Background", Color.WHITE, Color.YELLOW);
-        depthImage = new ImagePanel("Depthscale", Color.RED);
+        backgroundImagePanel = new BackgroundImagePanel("Background", Color.BLACK);
+        depthImage = new DepthImagePanel("Depthscale", Color.RED);
         startRecordingButton = new JButton("Start Recording");
         stopRecordingButton = new JButton("Stop Recording");
         toggleBackgroundButton = new JToggleButton("Toggle Background");
@@ -87,6 +80,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
         depthImageFilter.setMinDiffWithBackGroundInCM(minDiffFromBackgroundInCM);
         camera = new OpenKinectCamera();
         cameraRunner = new Timer("Animator", true);
+        eventBus = new InputImageEventBus();
     }
 
     private JPanel wrapImagePanel(ImagePanel imagePanel) {
@@ -120,8 +114,7 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
 
         imagesPanel = new JPanel(new GridLayout(2, 2, 5, 5));
         imagesPanel.add(wrapImagePanel(cameraInputImage));
-        imagesPanel.add(wrapImagePanel(staticBackgroundImage));
-        imagesPanel.add(wrapImagePanel(mergedImage));
+        imagesPanel.add(wrapImagePanel(backgroundImagePanel));
         imagesPanel.add(wrapImagePanel(depthImage));
 
         getContentPane().add(imagesPanel, BorderLayout.CENTER);
@@ -140,18 +133,6 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
             public void windowClosed(WindowEvent e) {
                 stopCamera(camera);
                 shutdownCamera(camera);
-            }
-        });
-
-        toggleBackgroundButton.addChangeListener(new ChangeListener() {
-            @Override
-            public void stateChanged(ChangeEvent event) {
-                if (!toggleBackgroundButton.isSelected()) {
-                    backgroundDepthImage = null;
-                    return;
-                }
-                backgroundDepthImage = backgroundStabilizerDepthImage.createCopy();
-                staticBackgroundImage.setImage(depthImageTransformer.createColorImage(backgroundDepthImage));
             }
         });
 
@@ -198,9 +179,10 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
         });
 
         cameraInputImage.addRegionSelectionListener(new RegionSelectionListenerImpl("CameraInput"));
-        mergedImage.addRegionSelectionListener(new RegionSelectionListenerImpl("MergedImage"));
         depthImage.addRegionSelectionListener(new RegionSelectionListenerImpl("DepthImage"));
-        staticBackgroundImage.addRegionSelectionListener(new RegionSelectionListenerImpl("BackgroundImage"));
+        backgroundImagePanel.addRegionSelectionListener(new RegionSelectionListenerImpl("BackgroundImage"));
+
+        eventBus.addFrameGrabbedListener(cameraInputImage, depthImage, backgroundImagePanel);
     }
 
     private void mediateRecordingButtons(boolean recording) {
@@ -216,11 +198,8 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
         cameraInputImage.setMinimumSize(imagePanelDimension);
         cameraInputImage.setPreferredSize(imagePanelDimension);
 
-        staticBackgroundImage.setMinimumSize(imagePanelDimension);
-        staticBackgroundImage.setPreferredSize(imagePanelDimension);
-
-        mergedImage.setMinimumSize(imagePanelDimension);
-        mergedImage.setPreferredSize(imagePanelDimension);
+        backgroundImagePanel.setMinimumSize(imagePanelDimension);
+        backgroundImagePanel.setPreferredSize(imagePanelDimension);
 
         depthImage.setMinimumSize(imagePanelDimension);
         depthImage.setPreferredSize(imagePanelDimension);
@@ -228,7 +207,6 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
         setResizable(true);
         pack();
 
-        backgroundStabilizerDepthImage = new StabilizedDepthImage();
         imageSequenceRecorder = new DefaultImageSequenceRecorder(5, SAVE_DIRECTORY);
         camera.initialize();
         camera.start();
@@ -245,44 +223,15 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
                 }
 
                 final CombinedImage grabbedCombinedImage = camera.getGrabbedImage();
-                backgroundStabilizerDepthImage.updateUnreadablePixels(grabbedCombinedImage.getDepthImage());
-                staticBackgroundImage.setImage(depthImageTransformer.createColorImage(backgroundStabilizerDepthImage));
+                eventBus.setImageGrabbed(grabbedCombinedImage);
 
-                final BufferedImage colorImage = grabbedCombinedImage.getColorImage();
-                DepthImage depthImageWithoutBackground = grabbedCombinedImage.getDepthImage();
-                if (backgroundDepthImage != null) {
-                    depthImageWithoutBackground = removeDepthsInBackground(grabbedCombinedImage.getDepthImage(), backgroundDepthImage);
-                    cropColorsOnlyInDepth(colorImage, depthImageWithoutBackground);
-                }
-                cameraInputImage.setImage(colorImage);
-                mergedImage.setImage(depthImageTransformer.createColorImage(depthImageWithoutBackground));
-                depthImage.setImage(depthImageTransformer.createColorImage(grabbedCombinedImage.getDepthImage()));
                 imagesPanel.repaint();
 
                 if (recording) {
                     imageSequenceRecorder.add(grabbedCombinedImage);
                 }
             }
-
-            private DepthImage removeDepthsInBackground(DepthImage sourceImage, DepthImage backgroundDepthImage) {
-                DepthImage depth = sourceImage;
-                if (backgroundDepthImage != null) {
-                    depth = depthImageFilter.filterDepthsInBackground(sourceImage, backgroundDepthImage);
-                }
-                return depth;
-            }
         }, 1000, CAMERA_TASK_PERIOD_IN_MILLIS);
-    }
-
-    private void cropColorsOnlyInDepth(BufferedImage colorImage, DepthImage depthImage) {
-        for (int x = 0; x < depthImage.getWidth(); x++) {
-            for (int y = 0; y < depthImage.getHeight(); y++) {
-                final int value = depthImage.getDepth(x, y);
-                if (value == DepthImageTransformer.DEPTH_MAX) {
-                    colorImage.setRGB(x, y, Color.BLACK.getRGB());
-                }
-            }
-        }
     }
 
     private class RegionSelectionListenerImpl implements ImagePanel.RegionSelectionListener {

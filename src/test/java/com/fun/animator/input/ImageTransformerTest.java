@@ -85,9 +85,13 @@ public class ImageTransformerTest {
         }
     }
 
-    private static ImagePanel createImagePanelWithImage(BufferedImage image, Color color, String title) {
-        ImagePanel imagePanel = new ImagePanel(title, color);
-        imagePanel.setImage(image);
+    private static ImagePanel createImagePanelWithImage(final BufferedImage image, Color color, String title) {
+        ImagePanel imagePanel = new ImagePanel(title, color) {
+            @Override
+            public BufferedImage getColorImage() {
+                return image;
+            }
+        };
         Dimension dimension = new Dimension(200, 200);
         imagePanel.setMinimumSize(dimension);
         imagePanel.setSize(dimension);

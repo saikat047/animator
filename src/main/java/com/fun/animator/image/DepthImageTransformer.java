@@ -6,9 +6,9 @@ public interface DepthImageTransformer {
 
     static final int DIFF_CENTIMETER = 0x80;
     // minimum depth: in 100 cm
-    static final int DEPTH_MIN = 0x00003200;
+    static final int DEPTH_MIN = 0x00000000;
     // maximum depth: 511 cm
-    static final int DEPTH_MAX = 0x0000FFFF;
+    static final int DEPTH_MAX = DepthImage.DEPTH_MASK;
 
     BufferedImage createColorImage(DepthImage depthImage);
 }

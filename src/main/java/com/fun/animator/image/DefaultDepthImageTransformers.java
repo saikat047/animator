@@ -20,7 +20,10 @@ public class DefaultDepthImageTransformers implements DepthImageTransformer {
             for (int y = 0; y < depthImage.getHeight(); y++) {
                 final int depthValue = depthImage.getDepth(x, y);
                 final int color;
-                if (depthValue > DEPTH_MAX_FOR_COLOR) {
+                if (depthValue == DepthImageTransformer.DEPTH_MAX) {
+                    color = Color.BLACK.getRGB();
+                }
+                else if (depthValue > DEPTH_MAX_FOR_COLOR) {
                     final double depthRatio = 1 - (depthValue - DEPTH_MAX_FOR_COLOR) / (DEPTH_MAX - DEPTH_MAX_FOR_COLOR);
                     color = new Color((int) (depthRatio * minColorForScalingZone.getRed()),
                                       (int) (depthRatio * minColorForScalingZone.getGreen()),

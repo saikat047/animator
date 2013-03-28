@@ -24,6 +24,8 @@ public class OpenKinectCamera extends Camera {
         try {
             opencv_core.IplImage depthImage = openKinectFrameGrabber.grabDepth();
             opencv_core.IplImage colorImage = openKinectFrameGrabber.grabVideo();
+            System.out.printf("ColorImage width: %d, height: %d\n", colorImage.width(), colorImage.height());
+            System.out.printf("DepthImage width: %d, height: %d\n", depthImage.width(), depthImage.height());
             return new CombinedImageImpl(colorImage, depthImage);
         } catch (FrameGrabber.Exception ex) {
             throw new RuntimeException(ex);
