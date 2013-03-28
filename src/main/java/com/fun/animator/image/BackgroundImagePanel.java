@@ -10,7 +10,12 @@ public class BackgroundImagePanel extends ImagePanel {
 
     public BackgroundImagePanel(String purpose, Color color) {
         super(purpose, color);
-        backgroundStabilizerDepthImage = new StabilizedDepthImage();
+    }
+
+    @Override
+    public void inputFrameGrabbed(CombinedImage combinedImage) {
+        backgroundStabilizerDepthImage.updateUnreadablePixels(combinedImage.getDepthImage());
+        this.combinedImage = new CombinedImageImpl(combinedImage.getColorImage(), backgroundStabilizerDepthImage);
     }
 
     @Override
@@ -18,7 +23,6 @@ public class BackgroundImagePanel extends ImagePanel {
         if (combinedImage == null) {
             return null;
         }
-        backgroundStabilizerDepthImage.updateUnreadablePixels(combinedImage.getDepthImage());
         return depthImageTransformer.createColorImage(backgroundStabilizerDepthImage);
     }
 }

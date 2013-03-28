@@ -47,9 +47,18 @@ public class ImagePanel extends JPanel implements FrameGrabbedListener {
     }
 
     private void fireRegionSelectedEvent() {
-        final BufferedImage depthImage = getColorImage();
+        BufferedImage colorImage = combinedImage.getColorImage();
+        final int panelWidth = getWidth();
+        final int imageWidth = colorImage.getWidth();
+        double image2panelRatio = (double) imageWidth / panelWidth;
+
+        Point regionStart = new Point((int) (image2panelRatio * selectedRegionStart.getX()),
+                                      (int) (image2panelRatio * selectedRegionStart.getY()));
+        Rectangle region = new Rectangle((int) (image2panelRatio * selectedRegion.getWidth()),
+                                         (int) (image2panelRatio * selectedRegion.getHeight()));
+
         for (RegionSelectionListener regionSelectionListener : regionSelectionListeners) {
-            regionSelectionListener.regionSelected(depthImage, selectedRegionStart, selectedRegion);
+            regionSelectionListener.regionSelected(combinedImage, regionStart, region);
         }
     }
 
@@ -104,7 +113,7 @@ public class ImagePanel extends JPanel implements FrameGrabbedListener {
          * The given region has co-ordinates relative to the image panel.
          * @param rectangle
          */
-        public void regionSelected(final BufferedImage depthImage, final Point start, final Rectangle rectangle);
+        public void regionSelected(final CombinedImage image, final Point start, final Rectangle rectangle);
     }
 
     private class MouseRegionSelectionAdapter extends MouseAdapter {

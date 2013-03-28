@@ -6,7 +6,6 @@ import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.awt.image.BufferedImage;
 import java.io.File;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -22,6 +21,7 @@ import com.fun.animator.event.InputImageEventBus;
 import com.fun.animator.image.BackgroundImagePanel;
 import com.fun.animator.image.CombinedImage;
 import com.fun.animator.image.DefaultImageSequenceRecorder;
+import com.fun.animator.image.DepthImage;
 import com.fun.animator.image.DepthImageFilter;
 import com.fun.animator.image.DepthImagePanel;
 import com.fun.animator.image.ImagePanel;
@@ -172,12 +172,6 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
             }
         });
 
-        cameraInputImage.addRegionSelectionListener(new ImagePanel.RegionSelectionListener() {
-            @Override
-            public void regionSelected(BufferedImage depthImage, Point start, Rectangle rectangle) {
-            }
-        });
-
         cameraInputImage.addRegionSelectionListener(new RegionSelectionListenerImpl("CameraInput"));
         depthImage.addRegionSelectionListener(new RegionSelectionListenerImpl("DepthImage"));
         backgroundImagePanel.addRegionSelectionListener(new RegionSelectionListenerImpl("BackgroundImage"));
@@ -242,14 +236,15 @@ public class CameraInputDialog extends JDialog implements LifeCycle {
         }
 
         @Override
-        public void regionSelected(BufferedImage depthImage, Point start, Rectangle rectangle) {
+        public void regionSelected(CombinedImage combinedImage, Point start, Rectangle rectangle) {
             StringBuilder infoBuilder = new StringBuilder();
             infoBuilder.append("ImagePanel : " + regionName).append("\n");
             int minValue = Integer.MAX_VALUE;
             int maxValue = 0;
+            DepthImage image = combinedImage.getDepthImage();
             for (int x = (int) start.getX(); x <= start.getX() + rectangle.getWidth(); x++) {
                 for (int y = (int) start.getY(); y <= start.getY() + rectangle.getHeight(); y++) {
-                    final int value = depthImage.getRGB(x, y);
+                    final int value = image.getDepth(x, y);
                     if (value < minValue) {
                         minValue = value;
                     }
