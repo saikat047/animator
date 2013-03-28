@@ -67,4 +67,14 @@ public class StabilizedDepthImage implements DepthImage {
         }
         return newImage;
     }
+
+    public static class Unmodifiable extends StabilizedDepthImage {
+        public Unmodifiable(DepthImage depthImage) {
+            super.updateUnreadablePixels(depthImage);
+        }
+
+        @Override
+        public void updateUnreadablePixels(DepthImage image) {
+        }
+    }
 }
