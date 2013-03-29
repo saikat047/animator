@@ -156,7 +156,7 @@ public class KinectCameraCalibration extends JDialog implements LifeCycle {
             public void run() {
                 while (!systemExiting) {
                     CombinedImage grabbedImage = camera.getGrabbedImage();
-                    eventBus.setImageGrabbed(grabbedImage);
+                    eventBus.setImageGrabbed(grabbedImage.deepCopy());
                     imagesPanel.repaint();
                     try {
                         Thread.sleep(20);
