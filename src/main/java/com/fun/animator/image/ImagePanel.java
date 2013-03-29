@@ -41,7 +41,7 @@ public class ImagePanel extends JPanel implements FrameGrabbedListener {
         this.addMouseMotionListener(mouseListener);
     }
 
-    private void setRegionInfo(final Point selectedRegionStart, final Rectangle selectedRegion) {
+    public void setRegionInfo(final Point selectedRegionStart, final Rectangle selectedRegion) {
         this.selectedRegionStart = selectedRegionStart;
         this.selectedRegion = selectedRegion;
     }

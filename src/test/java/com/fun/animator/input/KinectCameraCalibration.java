@@ -4,6 +4,7 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.awt.image.BufferedImage;
 
 import javax.swing.*;
 import javax.swing.border.CompoundBorder;
@@ -36,7 +37,7 @@ public class KinectCameraCalibration extends JDialog implements LifeCycle {
         colorImagePanel = new ImagePanel("Color", Color.BLACK);
         depthImagePanel = new DepthImagePanel("Depth", Color.RED);
         eventBus = new InputImageEventBus();
-        snapBackgroundButton = new JToggleButton("Take Snapshot");
+        snapBackgroundButton = new JToggleButton("Freeze");
         colorImagePanelInfo = createImageInfoTextArea();
         depthImagePanelInfo = createImageInfoTextArea();
     }
@@ -58,8 +59,13 @@ public class KinectCameraCalibration extends JDialog implements LifeCycle {
         getContentPane().add(imagesPanel, BorderLayout.CENTER);
         JPanel leftPanel = new JPanel(new BorderLayout());
         leftPanel.add(snapBackgroundButton, BorderLayout.PAGE_START);
-        leftPanel.add(colorImagePanelInfo, BorderLayout.CENTER);
-        leftPanel.add(depthImagePanelInfo, BorderLayout.PAGE_END);
+        JPanel imageInfos = new JPanel();
+        BoxLayout imageInfosLayout = new BoxLayout(imageInfos, BoxLayout.PAGE_AXIS);
+        imageInfos.setLayout(imageInfosLayout);
+        imageInfos.add(colorImagePanelInfo, BorderLayout.CENTER);
+        imageInfos.add(depthImagePanelInfo, BorderLayout.PAGE_END);
+        leftPanel.add(imageInfos, BorderLayout.CENTER);
+        leftPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
         getContentPane().add(leftPanel, BorderLayout.LINE_START);
     }
 
@@ -96,6 +102,38 @@ public class KinectCameraCalibration extends JDialog implements LifeCycle {
                 }
             }
         });
+
+        colorImagePanel.addRegionSelectionListener(new ImagePanel.RegionSelectionListener() {
+            @Override
+            public void regionSelected(CombinedImage image, Point start, Rectangle rectangle) {
+                colorImagePanelInfo.setText(createInfo(start, rectangle));
+            }
+        });
+
+        depthImagePanel.addRegionSelectionListener(new ImagePanel.RegionSelectionListener() {
+            @Override
+            public void regionSelected(CombinedImage image, Point start, Rectangle rectangle) {
+                depthImagePanelInfo.setText(createInfo(start, rectangle));
+                updateColorImagePanel(image, start, rectangle);
+            }
+
+            private void updateColorImagePanel(CombinedImage image, Point start, Rectangle rectangle) {
+                BufferedImage colorImage = image.getColorImage();
+                final double panel2ImageRatio = (double) colorImagePanel.getWidth() / colorImage.getWidth();
+                start.setLocation(panel2ImageRatio * start.getX(), panel2ImageRatio * start.getY());
+                rectangle.setSize((int) (panel2ImageRatio * rectangle.getWidth()),
+                                  (int) (panel2ImageRatio * rectangle.getHeight()));
+                colorImagePanel.setRegionInfo(start, rectangle);
+            }
+        });
+    }
+
+    private String createInfo(Point start, Rectangle rectangle) {
+        StringBuilder infoBuilder = new StringBuilder();
+        infoBuilder.append(String.format("start (x, y) = (%d, %d)\n", (int) start.getX(), (int) start.getY()));
+        infoBuilder.append(String.format("selection (width, height) = (%d, %d)\n",
+                                         (int) rectangle.getWidth(), (int) rectangle.getHeight()));
+        return infoBuilder.toString();
     }
 
     @Override
