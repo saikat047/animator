@@ -6,7 +6,7 @@ import java.util.concurrent.locks.ReentrantLock;
 public class StabilizedDepthImage implements DepthImage {
 
     private final Lock imageListLock = new ReentrantLock();
-    private DepthImage depthImage = null;
+    private DepthImage depthImage = new NullDepthImage();
 
     public StabilizedDepthImage() {
     }
@@ -14,7 +14,7 @@ public class StabilizedDepthImage implements DepthImage {
     public void updateUnreadablePixels(DepthImage image) {
         imageListLock.lock();
         try {
-            if (depthImage == null) {
+            if (depthImage instanceof NullDepthImage) {
                 depthImage = image;
                 return;
             }
