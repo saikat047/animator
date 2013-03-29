@@ -54,6 +54,7 @@ public class KinectCameraCalibration extends JDialog implements LifeCycle {
     public void createLayout() {
         getContentPane().setLayout(new BorderLayout());
         imagesPanel = new JPanel();
+        imagesPanel.setLayout(new BoxLayout(imagesPanel, BoxLayout.PAGE_AXIS));
         imagesPanel.add(wrapImagePanel(colorImagePanel));
         imagesPanel.add(wrapImagePanel(depthImagePanel));
         getContentPane().add(imagesPanel, BorderLayout.CENTER);
@@ -138,7 +139,7 @@ public class KinectCameraCalibration extends JDialog implements LifeCycle {
 
     @Override
     public void initialize() {
-        Dimension imagePanelDimension = new Dimension(400, 300);
+        Dimension imagePanelDimension = new Dimension(480, 360);
         colorImagePanel.setMinimumSize(imagePanelDimension);
         colorImagePanel.setPreferredSize(imagePanelDimension);
 
