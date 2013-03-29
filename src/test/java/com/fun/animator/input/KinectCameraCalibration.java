@@ -121,10 +121,27 @@ public class KinectCameraCalibration extends JDialog implements LifeCycle {
             private void updateColorImagePanel(CombinedImage image, Point start, Rectangle rectangle) {
                 BufferedImage colorImage = image.getColorImage();
                 final double panel2ImageRatio = (double) colorImagePanel.getWidth() / colorImage.getWidth();
+
+                final double cx = transformX(start.getX());
+                final double cy = transformY(start.getY());
+                final double width = transformX(start.getX() + rectangle.getWidth());
+                final double height = transformY(start.getY() + rectangle.getHeight());
+                rectangle.setSize((int) (width - cx),
+                                  (int) (height - cy));
+                start.setLocation(cx, cy);
+
                 start.setLocation(panel2ImageRatio * start.getX(), panel2ImageRatio * start.getY());
                 rectangle.setSize((int) (panel2ImageRatio * rectangle.getWidth()),
                                   (int) (panel2ImageRatio * rectangle.getHeight()));
                 colorImagePanel.setRegionInfo(start, rectangle);
+            }
+
+            private double transformX(double X) {
+                return 0.91 * (X - 320) + 320;
+            }
+
+            private double transformY(double Y) {
+                return 0.93 * (Y - 240) + 260;
             }
         });
     }
