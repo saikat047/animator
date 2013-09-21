@@ -15,6 +15,7 @@ public class BackgroundImagePanel extends ImagePanel {
     private StabilizedDepthImage backgroundStabilizerDepthImage = new StabilizedDepthImage();
     private DepthImageTransformer depthImageTransformer = new DefaultDepthImageTransformers();
     private File animatorDepthBackgroundFile = new File(System.getProperty("user.home"), "animator-depth-bg.png");
+    private boolean frozen;
 
     public BackgroundImagePanel(String purpose, Color color) {
         super(purpose, color);
@@ -31,6 +32,14 @@ public class BackgroundImagePanel extends ImagePanel {
 
     private JPopupMenu createPopupMenu() {
         JPopupMenu popupMenu = new JPopupMenu();
+        JMenuItem freezeBackground = new JMenuItem("Freeze background image");
+        freezeBackground.addActionListener(new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                setFrozen(true);
+            }
+        });
+        popupMenu.add(freezeBackground);
         JMenuItem saveItem = new JMenuItem("Save depth as image");
         saveItem.addActionListener(new AbstractAction() {
             @Override
@@ -68,6 +77,7 @@ public class BackgroundImagePanel extends ImagePanel {
             @Override
             public void actionPerformed(ActionEvent e) {
                 backgroundStabilizerDepthImage = new StabilizedDepthImage();
+                setFrozen(false);
             }
         });
         popupMenu.add(clearItem);
@@ -76,8 +86,17 @@ public class BackgroundImagePanel extends ImagePanel {
 
     @Override
     public void inputFrameGrabbed(CombinedImage combinedImage) {
+        if (frozen) {
+            return;
+        }
         backgroundStabilizerDepthImage.updateUnreadablePixels(combinedImage.getDepthImage());
         this.combinedImage = new CombinedImageImpl(combinedImage.getColorImage(), backgroundStabilizerDepthImage);
+    }
+
+    @Override
+    public CombinedImage getCombinedImage() {
+        CombinedImage combinedImage = super.getCombinedImage();
+        return new CombinedImageImpl(combinedImage.getColorImage(), backgroundStabilizerDepthImage.createCopy());
     }
 
     @Override
@@ -86,5 +105,9 @@ public class BackgroundImagePanel extends ImagePanel {
             return null;
         }
         return depthImageTransformer.createColorImage(backgroundStabilizerDepthImage);
+    }
+
+    public void setFrozen(boolean frozen) {
+        this.frozen = frozen;
     }
 }

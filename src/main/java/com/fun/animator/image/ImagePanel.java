@@ -67,6 +67,10 @@ public class ImagePanel extends JPanel implements FrameGrabbedListener {
         this.combinedImage = combinedImage;
     }
 
+    public CombinedImage getCombinedImage() {
+        return combinedImage;
+    }
+
     protected BufferedImage getColorImage() {
         if (combinedImage == null) {
             return null;
