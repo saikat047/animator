@@ -7,6 +7,11 @@ public class DefaultDepthImageTransformers implements DepthImageTransformer {
 
     private static final double DEPTH_MAX_FOR_COLOR = DEPTH_MIN + 0.95 * (DEPTH_MAX - DEPTH_MIN);
 
+    /*
+        Set a color of a pixel based on the depth value of it.
+        The nearer the pixel is, the brighter the (green) color of it.
+        The farther the pixel is, the darker the (green) color of it.
+     */
     @Override
     public BufferedImage createColorImage(DepthImage depthImage) {
         // WARNING: THE ADDITION OF THE TWO INDIVIDUAL COLOR COMPONENTS BELOW MUST NEVER
